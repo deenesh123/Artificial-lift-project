@@ -486,8 +486,10 @@ export interface DigitalTwinModelConfig {
 
 export type CableShopWorkflowStage = 
   | 'Equipment Selection'
+  | 'Cable Inspection'
   | 'Individual Cable Test'
   | 'Equipment Preparation'
+  | 'Splicing & Assembly'
   | 'Combined Spliced Cable Test'
   | 'Shipment Preparation'
   | 'Shipped Equipment'

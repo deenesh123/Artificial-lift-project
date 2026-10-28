@@ -244,14 +244,14 @@ export const CableShopView: React.FC<CableShopViewProps> = ({
           <div className="flex items-center gap-2">
             <Sliders className="w-5 h-5 text-cyan-400" />
             <h2 className="text-base font-bold text-white tracking-wide font-mono">
-              Cable Shop Operations &amp; Spool Logistics (Slide 16)
+              Cable Shop Operations &amp; Spool Logistics
             </h2>
             <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-cyan-950 text-cyan-300 border border-cyan-800 font-semibold">
-              8-STAGE QA WORKFLOW
+              9-STAGE INDUSTRIAL QA WORKFLOW
             </span>
           </div>
           <p className="text-xs text-slate-400 mt-1">
-            Standardized ESP cable qualification: Hi-Pot DC testing, vulcanized splicing, reel banding, and well-pad delivery.
+            Standardized ESP cable qualification: visual inspection, DC Hi-Pot testing, vulcanized splicing, reel banding, and pad dispatch.
           </p>
         </div>
 
@@ -301,7 +301,7 @@ export const CableShopView: React.FC<CableShopViewProps> = ({
         </div>
       )}
 
-      {/* 8-Stage Interactive Visual Pipeline Bar (PDF Page 16) */}
+      {/* 9-Stage Interactive Visual Pipeline Stepper */}
       <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-lg space-y-4">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 border-b border-slate-800 pb-3">
           <div className="flex items-center gap-2">
@@ -314,12 +314,12 @@ export const CableShopView: React.FC<CableShopViewProps> = ({
             </span>
           </div>
           <span className="text-xs font-mono text-slate-400">
-            Current Stage: <strong className="text-emerald-400">{selectedItem.stage}</strong> (Step {currentStep} of 8)
+            Current Stage: <strong className="text-emerald-400">{selectedItem.stage}</strong> (Step {currentStep} of 9)
           </span>
         </div>
 
-        {/* Circular Stages Flow (Matching Slide 16) */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2.5">
+        {/* Circular Stages Flow (9 Industrial Stages) */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-9 gap-2">
           {CABLE_SHOP_STAGES.map(s => {
             const isCompleted = s.step < currentStep;
             const isCurrent = s.step === currentStep;
@@ -327,7 +327,7 @@ export const CableShopView: React.FC<CableShopViewProps> = ({
             return (
               <div
                 key={s.step}
-                className={`flex flex-col items-center text-center p-2.5 rounded-xl border transition-all ${
+                className={`flex flex-col items-center text-center p-2 rounded-xl border transition-all ${
                   isCurrent
                     ? 'bg-cyan-950/80 border-cyan-400 text-cyan-200 ring-1 ring-cyan-500/50 shadow-lg'
                     : isCompleted
@@ -336,7 +336,7 @@ export const CableShopView: React.FC<CableShopViewProps> = ({
                 }`}
               >
                 {/* Stage Circle */}
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center font-mono font-bold text-xs mb-1.5 ${
+                <div className={`w-7 h-7 rounded-full flex items-center justify-center font-mono font-bold text-xs mb-1 ${
                   isCurrent 
                     ? 'bg-cyan-500 text-slate-950 shadow-md animate-pulse' 
                     : isCompleted 
@@ -346,11 +346,14 @@ export const CableShopView: React.FC<CableShopViewProps> = ({
                   {isCompleted ? '✓' : `0${s.step}`}
                 </div>
 
-                <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400">
+                <span className="text-[9px] font-mono font-bold uppercase tracking-wider text-slate-400">
                   Step 0{s.step}
                 </span>
-                <span className="text-[11px] font-semibold leading-tight mt-0.5 text-slate-200 line-clamp-2">
+                <span className="text-[11px] font-semibold leading-tight mt-0.5 text-slate-200 line-clamp-1">
                   {s.label}
+                </span>
+                <span className="text-[9px] text-slate-400 leading-tight mt-0.5 line-clamp-1">
+                  {s.desc}
                 </span>
               </div>
             );
@@ -714,7 +717,7 @@ export const CableShopView: React.FC<CableShopViewProps> = ({
             <form onSubmit={handleAdvanceStage} className="space-y-4">
               <div className="space-y-1.5">
                 <label className="text-xs font-semibold text-slate-300 block">
-                  Target 8-Stage Workflow Step:
+                  Target 9-Stage Industrial Workflow Step:
                 </label>
                 <select
                   value={newStage}

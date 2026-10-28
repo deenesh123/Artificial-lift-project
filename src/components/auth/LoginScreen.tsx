@@ -215,64 +215,177 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onGoogleLogin
       <div className="flex-1 flex items-center justify-center p-4 lg:p-8">
         <div className="w-full max-w-5xl grid grid-cols-1 lg:grid-cols-12 bg-slate-900/90 border border-slate-800 rounded-2xl shadow-2xl overflow-hidden backdrop-blur-md">
           
-          {/* Left Brand & Architecture Story Panel (5 cols) */}
-          <div className="lg:col-span-5 bg-gradient-to-br from-slate-900 via-slate-950 to-blue-950/60 p-6 lg:p-8 border-b lg:border-b-0 lg:border-r border-slate-800 flex flex-col justify-between">
-            <div>
+          {/* Left Brand & Architecture Story Panel (5 cols) with Dark Industrial Oilfield Visualization */}
+          <div className="lg:col-span-5 bg-gradient-to-br from-slate-950 via-slate-900 to-cyan-950/40 p-6 lg:p-8 border-b lg:border-b-0 lg:border-r border-slate-800 flex flex-col justify-between relative overflow-hidden">
+            {/* Subtle background glow */}
+            <div className="absolute top-0 right-0 w-64 h-64 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none" />
+            <div className="absolute bottom-0 left-0 w-64 h-64 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
+
+            <div className="relative z-10">
               {/* Brand Lockup */}
-              <div className="flex items-center gap-3 mb-6">
+              <div className="flex items-center gap-3 mb-5">
                 <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-cyan-500 to-blue-700 flex items-center justify-center shadow-lg shadow-cyan-500/20 border border-cyan-400/40">
                   <Flame className="w-7 h-7 text-white stroke-[2.2]" />
                 </div>
                 <div>
-                  <div className="text-2xl font-bold tracking-tight text-white font-mono">
-                    ALS
+                  <div className="text-2xl font-bold tracking-tight text-white font-mono flex items-center gap-2">
+                    <span>ALS</span>
+                    <span className="text-[10px] font-mono font-normal px-2 py-0.5 rounded bg-cyan-950 border border-cyan-700/60 text-cyan-300">ENTERPRISE</span>
                   </div>
-                  <div className="text-xs font-semibold text-cyan-400 tracking-wider uppercase">
+                  <div className="text-xs font-semibold text-cyan-400 tracking-wider uppercase font-mono">
                     Artificial Lift Suite
                   </div>
                 </div>
               </div>
 
               <h2 className="text-xl lg:text-2xl font-bold text-white tracking-tight leading-snug">
-                Intelligent Artificial Lift & Energy Operations Platform
+                Intelligent Artificial Lift & Energy Operations
               </h2>
 
-              <p className="mt-3 text-xs lg:text-sm text-slate-300 leading-relaxed">
-                Role-gated dual-portal operations for oil and gas production monitoring, ESP surveillance, SCADA telemetry, and fleet operations.
+              <p className="mt-2 text-xs text-slate-300 leading-relaxed">
+                Client-ready industrial telemetry cockpit for downhole ESP surveillance, beam pump dynamometer cards, SCADA registers, and digital twin simulation.
               </p>
 
-              {/* Portal Division Explainer */}
-              <div className="mt-6 space-y-3">
-                <div className="p-3 rounded-lg bg-blue-950/30 border border-blue-900/60 flex items-start gap-3">
-                  <div className="w-8 h-8 rounded-lg bg-blue-900/50 flex items-center justify-center text-blue-400 shrink-0 mt-0.5">
-                    <ShieldCheck className="w-4 h-4" />
+              {/* Industrial Oilfield & Subsurface Vector Graphic */}
+              <div className="my-5 p-3.5 rounded-xl bg-slate-950/80 border border-slate-800/80 shadow-inner">
+                <div className="flex items-center justify-between text-[11px] font-mono text-slate-400 pb-2 mb-2 border-b border-slate-800/70">
+                  <span className="flex items-center gap-1.5 text-cyan-400 font-semibold">
+                    <Radio className="w-3.5 h-3.5 animate-pulse" />
+                    <span>PERMIAN BASIN REAL-TIME TELEMETRY</span>
+                  </span>
+                  <span className="text-[10px] text-emerald-400">POLL: 1000ms</span>
+                </div>
+
+                <svg viewBox="0 0 320 130" className="w-full h-auto text-slate-400 select-none">
+                  {/* Sky/ground gradient backdrop */}
+                  <defs>
+                    <linearGradient id="groundGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                      <stop offset="0%" stopColor="#0B132B" stopOpacity="0.8" />
+                      <stop offset="100%" stopColor="#030712" stopOpacity="0.95" />
+                    </linearGradient>
+                    <linearGradient id="flowGrad" x1="0%" y1="100%" x2="0%" y2="0%">
+                      <stop offset="0%" stopColor="#06B6D4" stopOpacity="0.9" />
+                      <stop offset="100%" stopColor="#3B82F6" stopOpacity="0.3" />
+                    </linearGradient>
+                  </defs>
+
+                  {/* Horizon line */}
+                  <line x1="10" y1="52" x2="310" y2="52" stroke="#334155" strokeWidth="1.5" strokeDasharray="4 2" />
+                  <text x="12" y="47" fill="#64748B" fontSize="8" fontFamily="monospace">SURFACE (0 FT)</text>
+
+                  {/* Surface Pumpjack Schematic */}
+                  <g transform="translate(35, 10)">
+                    {/* Sampson Post */}
+                    <polygon points="35,42 42,42 39,22 38,22" fill="#475569" stroke="#64748B" strokeWidth="0.8" />
+                    <line x1="38.5" y1="22" x2="38.5" y2="42" stroke="#06B6D4" strokeWidth="0.6" />
+                    {/* Walking Beam */}
+                    <line x1="20" y1="18" x2="56" y2="26" stroke="#94A3B8" strokeWidth="2.5" strokeLinecap="round" />
+                    {/* Horsehead */}
+                    <path d="M 18,18 Q 14,24 16,30" stroke="#06B6D4" strokeWidth="2" fill="none" />
+                    {/* Bridle & Polished Rod */}
+                    <line x1="16" y1="30" x2="16" y2="42" stroke="#CBD5E1" strokeWidth="1" strokeDasharray="2 1" />
+                    {/* Counterweight crank */}
+                    <circle cx="50" cy="35" r="4" fill="#334155" stroke="#06B6D4" strokeWidth="1" />
+                  </g>
+
+                  {/* Surface Wellhead Christmas Tree (Center-Right) */}
+                  <g transform="translate(145, 28)">
+                    {/* Wellhead body */}
+                    <rect x="0" y="8" width="16" height="16" rx="2" fill="#1E293B" stroke="#06B6D4" strokeWidth="1" />
+                    {/* Valves */}
+                    <line x1="-8" y1="16" x2="24" y2="16" stroke="#38BDF8" strokeWidth="2" />
+                    <circle cx="-8" cy="16" r="2.5" fill="#0284C7" />
+                    <circle cx="24" cy="16" r="2.5" fill="#0284C7" />
+                    {/* Pressure Gauge */}
+                    <circle cx="8" cy="4" r="3.5" fill="#0F172A" stroke="#38BDF8" strokeWidth="1" />
+                    <line x1="8" y1="4" x2="10" y2="3" stroke="#22D3EE" strokeWidth="0.8" />
+                    {/* Surface to Downhole Casing line */}
+                    <line x1="8" y1="24" x2="8" y2="95" stroke="url(#flowGrad)" strokeWidth="3" />
+                  </g>
+
+                  {/* Subsurface Geological Formation & Downhole ESP Assembly */}
+                  <g transform="translate(145, 52)">
+                    {/* Casing String */}
+                    <line x1="2" y1="0" x2="2" y2="72" stroke="#475569" strokeWidth="1" strokeDasharray="3 2" />
+                    <line x1="14" y1="0" x2="14" y2="72" stroke="#475569" strokeWidth="1" strokeDasharray="3 2" />
+
+                    {/* Downhole ESP Unit at 8,200 ft */}
+                    <rect x="4" y="38" width="8" height="24" rx="1.5" fill="#0369A1" stroke="#38BDF8" strokeWidth="1" />
+                    {/* Intake ports */}
+                    <circle cx="8" cy="43" r="1" fill="#38BDF8" />
+                    <circle cx="8" cy="47" r="1" fill="#38BDF8" />
+                    {/* Motor section */}
+                    <rect x="5" y="52" width="6" height="8" fill="#1D4ED8" />
+
+                    {/* Perforations / Inflow arrows */}
+                    <path d="M -8,46 L 2,46 M -8,44 L -4,46 L -8,48" stroke="#10B981" strokeWidth="1" fill="none" />
+                    <path d="M 24,46 L 14,46 M 24,44 L 20,46 L 24,48" stroke="#10B981" strokeWidth="1" fill="none" />
+
+                    {/* Telemetry ping pulse */}
+                    <circle cx="8" cy="45" r="7" stroke="#06B6D4" strokeWidth="0.8" fill="none" opacity="0.6" className="animate-ping" />
+                  </g>
+
+                  {/* Telemetry Readout callouts */}
+                  <g transform="translate(200, 32)">
+                    <rect x="0" y="0" width="112" height="42" rx="4" fill="#0F172A" stroke="#334155" strokeWidth="0.8" />
+                    <text x="6" y="12" fill="#94A3B8" fontSize="7.5" fontFamily="monospace">IN-SITU TELEMETRY</text>
+                    <text x="6" y="24" fill="#38BDF8" fontSize="8.5" fontWeight="bold" fontFamily="monospace">PIP: 1,420 PSI</text>
+                    <text x="6" y="35" fill="#34D399" fontSize="8" fontFamily="monospace">T_MTR: 184°F · 58.2 Hz</text>
+                  </g>
+
+                  <g transform="translate(200, 80)">
+                    <rect x="0" y="0" width="112" height="42" rx="4" fill="#0F172A" stroke="#334155" strokeWidth="0.8" />
+                    <text x="6" y="12" fill="#94A3B8" fontSize="7.5" fontFamily="monospace">DIGITAL TWIN STATUS</text>
+                    <text x="6" y="24" fill="#FBBF24" fontSize="8.5" fontWeight="bold" fontFamily="monospace">BHP: 2,180 PSI</text>
+                    <text x="6" y="35" fill="#A7F3D0" fontSize="8" fontFamily="monospace">IPR EFF: 94.2% (VOGEL)</text>
+                  </g>
+                </svg>
+
+                {/* Micro indicators bar */}
+                <div className="grid grid-cols-3 gap-2 mt-2 pt-2 border-t border-slate-800 text-[10px] font-mono text-slate-300">
+                  <div className="text-center">
+                    <div className="text-slate-500">WELLS</div>
+                    <div className="font-bold text-white">20 Active</div>
                   </div>
-                  <div>
+                  <div className="text-center">
+                    <div className="text-slate-500">LIFT TYPES</div>
+                    <div className="font-bold text-cyan-300">ESP & Rod Pump</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-slate-500">SAFETY</div>
+                    <div className="font-bold text-emerald-400">SIL-2 Gated</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Portal Division Explainer */}
+              <div className="space-y-2.5">
+                <div className="p-2.5 rounded-lg bg-blue-950/30 border border-blue-900/60 flex items-start gap-2.5">
+                  <div className="w-7 h-7 rounded-lg bg-blue-900/50 flex items-center justify-center text-blue-400 shrink-0 mt-0.5">
+                    <ShieldCheck className="w-3.5 h-3.5" />
+                  </div>
+                  <div className="min-w-0">
                     <div className="text-xs font-semibold text-white flex items-center gap-2">
-                      <span>Admin Portal Access</span>
-                      <span className="px-1.5 py-0.2 rounded text-[10px] bg-blue-900 text-blue-300 font-mono">
-                        Role: Super Admin
-                      </span>
+                      <span>Admin Governance</span>
+                      <span className="text-[10px] font-mono text-blue-300">Super Admin</span>
                     </div>
-                    <p className="text-[11px] text-slate-300 mt-0.5 leading-normal">
-                      Infrastructure setup, SCADA register management, user provisioning, and role governance.
+                    <p className="text-[11px] text-slate-300 leading-normal">
+                      Infrastructure config, SCADA register definitions, user provisioning, and role governance.
                     </p>
                   </div>
                 </div>
 
-                <div className="p-3 rounded-lg bg-cyan-950/30 border border-cyan-900/60 flex items-start gap-3">
-                  <div className="w-8 h-8 rounded-lg bg-cyan-900/50 flex items-center justify-center text-cyan-400 shrink-0 mt-0.5">
-                    <Radio className="w-4 h-4 text-cyan-400" />
+                <div className="p-2.5 rounded-lg bg-cyan-950/30 border border-cyan-900/60 flex items-start gap-2.5">
+                  <div className="w-7 h-7 rounded-lg bg-cyan-900/50 flex items-center justify-center text-cyan-400 shrink-0 mt-0.5">
+                    <Radio className="w-3.5 h-3.5 text-cyan-400" />
                   </div>
-                  <div>
+                  <div className="min-w-0">
                     <div className="text-xs font-semibold text-white flex items-center gap-2">
-                      <span>User Operations Portal</span>
-                      <span className="px-1.5 py-0.2 rounded text-[10px] bg-cyan-900 text-cyan-300 font-mono">
-                        Roles: Ops / RTOC / Exec
-                      </span>
+                      <span>User Operations Cockpit</span>
+                      <span className="text-[10px] font-mono text-cyan-300">Ops / RTOC / Exec</span>
                     </div>
-                    <p className="text-[11px] text-slate-300 mt-0.5 leading-normal">
-                      12 dedicated operational modules: Operations Dashboard, Asset Monitoring, SCADA, ESP & Pump curves, Digital Twin, and Workflows.
+                    <p className="text-[11px] text-slate-300 leading-normal">
+                      Full operational suite: SCADA telemetry, Digital Twin, ESP & Pump diagnostics, Cable Shop & AI Assistant.
                     </p>
                   </div>
                 </div>
@@ -280,9 +393,12 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onGoogleLogin
             </div>
 
             {/* Bottom note */}
-            <div className="mt-6 pt-4 border-t border-slate-800 text-[11px] text-slate-400 flex items-center justify-between">
-              <span>Security Classification:</span>
-              <span className="font-mono text-cyan-300">RBAC Token Enforced</span>
+            <div className="mt-4 pt-3 border-t border-slate-800 text-[11px] text-slate-400 flex items-center justify-between font-mono">
+              <span className="flex items-center gap-1.5 text-slate-400">
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                <span>Enterprise RBAC Active</span>
+              </span>
+              <span className="text-cyan-300">v4.8 Client Ready</span>
             </div>
           </div>
 

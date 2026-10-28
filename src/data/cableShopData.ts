@@ -1,14 +1,15 @@
 import { CableShopItem, CableShopWorkflowStage } from '../types';
 
-export const CABLE_SHOP_STAGES: { stage: CableShopWorkflowStage; step: number; label: string }[] = [
-  { step: 1, stage: 'Equipment Selection', label: 'Equipment Selection' },
-  { step: 2, stage: 'Individual Cable Test', label: 'Individual Cable Test' },
-  { step: 3, stage: 'Equipment Preparation', label: 'Equipment Preparation' },
-  { step: 4, stage: 'Combined Spliced Cable Test', label: 'Combined Spliced Cable Test' },
-  { step: 5, stage: 'Shipment Preparation', label: 'Shipment Preparation' },
-  { step: 6, stage: 'Shipped Equipment', label: 'Shipped Equipment' },
-  { step: 7, stage: 'Warehouse Receivals', label: 'Warehouse Receivals' },
-  { step: 8, stage: 'Cable Shop Invoice', label: 'Cable Shop Invoice' },
+export const CABLE_SHOP_STAGES: { stage: CableShopWorkflowStage; step: number; label: string; desc: string }[] = [
+  { step: 1, stage: 'Equipment Selection', label: 'Equipment Selection', desc: 'Pull reel & spool ID assignment' },
+  { step: 2, stage: 'Cable Inspection', label: 'Cable Inspection', desc: 'Armor integrity & visual QA' },
+  { step: 3, stage: 'Individual Cable Test', label: 'Electrical Testing', desc: 'DC Hi-Pot & insulation resistance' },
+  { step: 4, stage: 'Equipment Preparation', label: 'Cable Preparation', desc: 'Cut, strip & phase conductor prep' },
+  { step: 5, stage: 'Splicing & Assembly', label: 'Splicing', desc: 'Tape-in vulcanized MLE lead splice' },
+  { step: 6, stage: 'Combined Spliced Cable Test', label: 'Spliced Cable Testing', desc: 'Combined step-voltage verification' },
+  { step: 7, stage: 'Shipment Preparation', label: 'Shipment Preparation', desc: 'Protective sheath & reel banding' },
+  { step: 8, stage: 'Shipped Equipment', label: 'Shipped / Warehouse', desc: 'Field transport & pad handover' },
+  { step: 9, stage: 'Cable Shop Invoice', label: 'Invoicing & Closure', desc: 'Cost allocation & ticket closure' },
 ];
 
 export const INITIAL_CABLE_SHOP_ITEMS: CableShopItem[] = [
