@@ -1,0 +1,6 @@
+{
+  "name": "ALS — Artificial Lift Suite",
+  "description": "Intelligent Artificial Lift & Energy Operations Platform for oil and gas production monitoring, ESP optimization, pump management, SCADA analytics, and fleet tracking.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
