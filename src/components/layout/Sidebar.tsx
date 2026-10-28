@@ -20,7 +20,8 @@ import {
   Zap,
   Sliders,
   Sparkles,
-  Flame
+  Flame,
+  LogOut
 } from 'lucide-react';
 import { PortalType } from '../../types';
 import { OperationsService } from '../../services/operationsService';
@@ -34,6 +35,7 @@ interface SidebarProps {
   onSelectRoute: (routeId: string) => void;
   collapsed: boolean;
   onToggleCollapse: () => void;
+  onLogout?: () => void;
 }
 
 interface NavItem {
@@ -51,6 +53,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onSelectRoute,
   collapsed,
   onToggleCollapse,
+  onLogout,
 }) => {
   const [alarms, setAlarms] = React.useState(() => OperationsService.getAlarms());
   const [jobs, setJobs] = React.useState(() => OperationsService.getJobs());
@@ -198,6 +201,22 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </div>
         ))}
       </div>
+
+      {/* Sign Out Button */}
+      {onLogout && (
+        <div className="p-2 border-t border-slate-900/90">
+          <button
+            onClick={onLogout}
+            title={collapsed ? 'Sign Out & Return to Login' : undefined}
+            className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-md text-xs font-medium text-rose-400 hover:text-rose-300 hover:bg-rose-950/30 border border-transparent hover:border-rose-900/40 transition-all ${
+              collapsed ? 'justify-center px-0' : ''
+            }`}
+          >
+            <LogOut className="w-4 h-4 shrink-0 text-rose-400" />
+            {!collapsed && <span className="truncate">Sign Out</span>}
+          </button>
+        </div>
+      )}
 
       {/* Footer System Status */}
       {!collapsed ? (

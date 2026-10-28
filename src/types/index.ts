@@ -20,6 +20,10 @@ export interface UserProfile {
   avatarUrl?: string;
   allowedPortals: PortalType[];
   defaultPortal: PortalType;
+  status?: 'active' | 'deactivated' | 'pending_approval';
+  authProvider?: 'credentials' | 'google';
+  createdAt?: string;
+  lastLoginAt?: string;
 }
 
 export type LiftType = 'ESP' | 'Rod Pump' | 'Gas Lift' | 'PCP' | 'Plunger Lift';
@@ -28,10 +32,17 @@ export type WellStatus = 'Nominal' | 'Warning' | 'Critical' | 'Offline' | 'Testi
 
 export interface WellAsset {
   id: string;
+  wellCode?: string;
   name: string;
   padName: string;
   basin: string;
   field: string;
+  zone?: string;
+  oilStation?: string;
+  plinth?: string;
+  assetCategory?: string;
+  assetType?: string;
+  manufacturer?: string;
   liftType: LiftType;
   status: WellStatus;
   operator: string;
@@ -55,6 +66,16 @@ export interface WellAsset {
   runLifeDays: number;
   lastServiceDate: string;
   healthScore: number;
+  streamingStatus?: 'Streaming' | 'Not Streaming';
+  streamingAge?: string;
+  tubingPressureKgCm2?: number;
+  flowlinePressureKgCm2?: number;
+  flowlineTempC?: number;
+  aAnnulusPressureKgCm2?: number;
+  bAnnulusPressureKgCm2?: number;
+  batteryVoltage?: number;
+  shutdownCause?: string;
+  shutdownTime?: string;
   coordinates: {
     lat: number;
     lng: number;
@@ -356,6 +377,10 @@ export interface FleetTransaction {
   timestamp: string;
   location: string;
   gallons?: number;
+  liters?: number;
+  odometer?: number;
+  economyKmL?: number;
+  anomaly?: string;
   pricePerGal?: number;
   amountUsd: number;
   receiptRef: string;
@@ -445,3 +470,75 @@ export interface DigitalTwinModelConfig {
   wearFactorPct: number;
   updatedAt: string;
 }
+
+export type CableShopWorkflowStage = 
+  | 'Equipment Selection'
+  | 'Individual Cable Test'
+  | 'Equipment Preparation'
+  | 'Combined Spliced Cable Test'
+  | 'Shipment Preparation'
+  | 'Shipped Equipment'
+  | 'Warehouse Receivals'
+  | 'Cable Shop Invoice';
+
+export interface CableShopItem {
+  id: string;
+  partName: string;
+  wellId?: string;
+  wellName?: string;
+  recordedDate: string;
+  vendorPartNumber: string;
+  currentSerialNumber: string;
+  spooledToReelNumber: string;
+  totalShippingLengthFt: number;
+  stage: CableShopWorkflowStage;
+  manufacturer: string;
+  classification: 'New' | 'Used' | 'Reconditioned';
+  failureCause?: string;
+  testVoltageKv?: number;
+  insulationResistanceMohm?: number;
+  conductorContinuity?: 'Pass' | 'Fail';
+  certDocName?: string;
+  invoiceNumber?: string;
+  invoiceAmountUsd?: number;
+  notes?: string;
+  updatedAt: string;
+}
+
+export interface EspSizingRequest {
+  id: string;
+  wellId: string;
+  wellName: string;
+  requestDate: string;
+  status: 'Draft' | 'Submitted' | 'Simulated' | 'Approved';
+  afeNumber?: string;
+  // Design Parameters
+  designRateStbd: number;
+  frequencyHz: number;
+  whpPsig: number;
+  tdhFt: number;
+  motorLoadHp: number;
+  pumpSpeedRpm: number;
+  fluidLevelFt: number;
+  intakePressurePsig: number;
+  pumpDepthFt: number;
+  dischargePressurePsig: number;
+  mixtureGradientPsiFt: number;
+  separationEfficiencyPct: number;
+  // Fluids
+  oilGravityApi: number;
+  waterSpecificGravity: number;
+  gasSpecificGravity: number;
+  bubblePointPressurePsig: number;
+  watercutPct: number;
+  gorScfStb: number;
+  // Reservoir
+  reservoirTempF: number;
+  wellTempF: number;
+  bottomholeTempF: number;
+  // Recommended Pump & Motor
+  recommendedPumpSeries?: string;
+  recommendedStages?: number;
+  recommendedMotorHp?: number;
+}
+

@@ -1,0 +1,1222 @@
+# COMPLETE ALS APPLICATION ENHANCEMENT PROMPT
+## Authentication + Role-Based Access + Separate User Portal + Asset Monitoring + Operational Dashboards + Tables + Workflows
+
+You are working on my existing **Artificial Lift Suite (ALS) web application**.
+
+I have imported the complete existing project source code from my GitHub repository into this Google AI Studio project.
+
+Your task is to inspect, understand, and enhance the existing application. Do not create a new application from scratch.
+
+The application must have two clearly separated experiences:
+
+1. **Admin Portal** – the existing Admin application.
+2. **User Portal** – a separate operational application designed for field operators, surveillance engineers, and other operational users.
+
+The Admin Portal already exists. Preserve it.
+
+The User Portal must follow the operational structure and functional requirements of the 37-slide PDF reference previously provided. That PDF is a reference for the **User Portal only**, not the Admin Portal.
+
+---
+
+# PART 1 — CRITICAL RULES: PROTECT THE EXISTING APPLICATION
+
+Before making any changes:
+
+1. Inspect the complete existing project structure.
+2. Identify the current React, TypeScript, routing, authentication, state-management, component, service, and data architecture.
+3. Inspect the existing Admin Portal and all its modules.
+4. Inspect the existing User Portal and identify incomplete or missing functionality.
+5. Inspect existing asset, well, device, ESP, pump, SCADA, telemetry, alarm, event, workflow, fleet, and reporting data models.
+6. Reuse existing components, services, types, records, and relationships wherever possible.
+
+**Do not:**
+
+- Rebuild the application from scratch.
+- Replace the existing application with a simplified dashboard.
+- Delete existing features or modules.
+- Replace the entire App.tsx unnecessarily.
+- Remove existing Admin Portal navigation or functionality.
+- Change existing Admin permissions or workflows without a specific requirement.
+- Break existing routes, authentication, CRUD operations, or data relationships.
+- Replace existing data models with unrelated mock structures.
+- create duplicate modules when an existing module can be enhanced.
+
+Make focused, modular changes and preserve backward compatibility.
+
+All telemetry and operational records must be synthetic demonstration data. Do not connect to actual SCADA, RTU, PLC, ESP controllers, field devices, or physical wells.
+
+---
+
+# PART 2 — AUTHENTICATION AND LOGIN SYSTEM
+
+Build a proper login experience for the ALS application using the existing authentication architecture.
+
+## 2.1 Login screen
+
+Create a professional industrial ALS login screen with:
+
+- ALS logo and application name.
+- Username/email field.
+- Password field.
+- Show/hide password control.
+- Remember-me option, if supported by the existing architecture.
+- Sign-in button.
+- Forgot-password option.
+- Validation messages.
+- Loading state.
+- Invalid credential message.
+- Account inactive message.
+- Pending approval message.
+
+Use a professional dark industrial design consistent with the existing application.
+
+## 2.2 Username and password login
+
+Users must be able to sign in using their assigned username/email and password.
+
+Inspect the existing authentication service, demo accounts, seed data, and login components before modifying authentication.
+
+Determine:
+
+- Which demo users already exist.
+- Their actual usernames/emails.
+- Their existing passwords or authentication mechanism.
+- Their assigned roles.
+- Their portal permissions.
+- Whether their accounts are active, inactive, or pending approval.
+
+Do not invent or display credentials that are not actually implemented.
+
+If demo users are missing, create a controlled demo-account mechanism using the existing authentication architecture.
+
+Provide at least:
+
+- One Admin demo account.
+- One Field Operations Engineer demo account.
+- One Surveillance Operator demo account.
+- One Executive Viewer demo account.
+
+Display demo credentials only if they are actually configured and usable.
+
+## 2.3 Authentication behavior
+
+Implement or preserve:
+
+- Session persistence.
+- Session expiration.
+- Sign-out.
+- Active/inactive account checking.
+- Role validation.
+- Portal permission checking.
+- Protected routes.
+- Unauthorized-access screen.
+- Pending-account approval screen.
+
+If the existing project uses simulated authentication, clearly treat it as a demonstration mechanism. Do not represent simulated authentication as production-grade authentication.
+
+## 2.4 Google sign-in
+
+If Google sign-in already exists, inspect its implementation and preserve it.
+
+Do not claim that Google OAuth is fully configured unless actual OAuth credentials, authorized origins, redirect URIs, and the provider flow are configured and verified.
+
+If credentials are missing, show a clear configuration status rather than pretending that sign-in succeeded.
+
+---
+
+# PART 3 — ROLE-BASED ACCESS CONTROL
+
+Support the existing operational roles and preserve existing role definitions wherever possible.
+
+Required role types include:
+
+- System Administrator.
+- Field Operations Engineer.
+- Surveillance Operator.
+- Executive Viewer.
+
+Map these roles to the existing role definitions instead of creating unnecessary duplicate roles.
+
+## 3.1 Admin Portal access
+
+Only users with Admin Portal permission can access the Admin Portal.
+
+The Admin Portal must retain its existing:
+
+- Dashboard.
+- Sidebar.
+- Navigation.
+- User management.
+- Asset management.
+- Device management.
+- ESP management.
+- Pump management.
+- SCADA management.
+- Alarm and event management.
+- Failure monitoring.
+- Job management.
+- Fleet management.
+- Reports and analytics.
+- Settings.
+- Existing CRUD functionality.
+- Existing permissions and workflows.
+
+Do not redesign or replace the Admin Portal as part of this task.
+
+## 3.2 User Portal access
+
+Operational users must access the User Portal according to their assigned permissions.
+
+Users without Admin permission must not be able to access Admin routes by manually entering URLs.
+
+Implement:
+
+- Protected routes.
+- Role-based navigation.
+- Portal-specific access.
+- Unauthorized-access handling.
+- Conditional portal switching.
+
+Only show the Admin Portal navigation or switch button to users who have permission.
+
+## 3.3 User approval
+
+If a new user registers or signs in through an unapproved external account:
+
+- Place the account in Pending Approval.
+- Do not grant operational or Admin access automatically.
+- Show an account-pending screen.
+- Allow authorized Admin users to approve or reject the request.
+- Allow Admin to assign roles and portal permissions.
+
+---
+
+# PART 4 — CREATE A COMPLETELY SEPARATE USER PORTAL UI
+
+The User Portal must have its own operational interface.
+
+It must not look like a copy of the Admin Portal.
+
+The Admin Portal is intended for system administration and management.
+
+The User Portal is intended for day-to-day oilfield operations, artificial lift surveillance, asset monitoring, alarms, maintenance, and workflows.
+
+## 4.1 User Portal layout
+
+Create a separate layout containing:
+
+### Header
+
+Display:
+
+- ALS application logo/name.
+- Current portal name: User Portal.
+- Selected asset or All Assets indicator.
+- Current user name.
+- User role.
+- Notification icon.
+- User profile menu.
+- Sign-out option.
+
+### Left-side navigation
+
+Create a dedicated User Portal sidebar with:
+
+1. Operations Dashboard.
+2. Asset Monitoring.
+3. SCADA Monitoring.
+4. Digital Twin.
+5. ESP Performance.
+6. Pump Performance.
+7. Alarm & Event Center.
+8. Failure Reason Monitoring.
+9. Operational Workflows.
+10. Cable Shop.
+11. Fleet Monitoring.
+12. Reports & Analytics.
+
+Show only the modules allowed for the signed-in user's role.
+
+The User Portal must have its own navigation, styling, and layout components. Do not reuse the Admin sidebar as the User Portal sidebar.
+
+---
+
+# PART 5 — ASSET MONITORING LEFT PANEL: RUNNING AND DOWN ASSETS
+
+This is a critical requirement.
+
+Inside the User Portal, create a dedicated **Asset Monitoring panel on the left side**.
+
+This panel must display the existing assets using their actual short names.
+
+The user must be able to quickly identify which assets are Running and which assets are Down.
+
+## 5.1 Asset Monitoring panel layout
+
+Place the Asset Monitoring panel on the left side of the operational dashboard.
+
+It must be separate from the main User Portal navigation, or implemented as a clearly distinct expandable asset panel alongside it.
+
+The panel must include:
+
+- Asset Monitoring heading.
+- Asset search field.
+- All Assets option.
+- Running Assets group.
+- Down Assets group.
+- Other operational statuses where supported by existing data.
+
+Possible additional groups:
+
+- Cycling.
+- No Communication.
+- Maintenance.
+- Warning.
+- Unknown.
+
+Do not force every asset into these additional categories if the existing data does not support them.
+
+## 5.2 Running assets
+
+Display all assets whose actual operational status is Running.
+
+For every asset, show:
+
+- Asset short name.
+- Running status indicator.
+- Optional production value.
+- Active alarm indicator, if available.
+
+Use a green status indicator for Running.
+
+## 5.3 Down assets
+
+Display all assets whose actual operational status is Down.
+
+For every asset, show:
+
+- Asset short name.
+- Down status indicator.
+- Shutdown reason, if available.
+- Downtime duration, if available.
+- Active alarm indicator, if available.
+
+Use a red status indicator for Down.
+
+Do not invent shutdown reasons or downtime values when unavailable.
+
+## 5.4 Asset short names
+
+Use the existing asset short name from the actual asset records as the primary display identifier.
+
+Do not invent a new naming convention.
+
+For example, names such as WELL-001 or ESP-101 are illustrative only. Use the actual short names already present in the project data.
+
+If an asset has both a short name and full name:
+
+- Display the short name prominently in the left panel.
+- Display the full name in the asset details or dashboard.
+- Preserve the relationship between short name and asset ID.
+
+## 5.5 Asset panel interaction
+
+The panel must support:
+
+- Search by asset short name.
+- Search by full name, if available.
+- Expand/collapse Running group.
+- Expand/collapse Down group.
+- Expand/collapse other supported status groups.
+- Select an individual asset.
+- Highlight the selected asset.
+- Switch back to All Assets.
+- Show the total number of Running and Down assets.
+
+When an asset is selected, update the right-side dashboard immediately.
+
+The selection must filter the dashboard and all related operational information to that asset.
+
+---
+
+# PART 6 — ASSET-SPECIFIC REAL-TIME OPERATIONAL DASHBOARD
+
+When the user selects an asset from the left-side Asset Monitoring panel, display its dedicated operational dashboard on the right side.
+
+The dashboard must show data belonging to the selected asset only.
+
+Do not show unrelated asset telemetry.
+
+## 6.1 Asset information header
+
+Display:
+
+- Asset short name.
+- Asset full name.
+- Asset ID.
+- Current operational status.
+- Basin/field/pad/well hierarchy, where available.
+- ESP/device information, where available.
+- Last telemetry update timestamp.
+- Active alarm count.
+- Current selected asset indicator.
+
+## 6.2 Asset KPI cards
+
+Show available synthetic operational KPIs, including:
+
+- Production rate (BPD).
+- Motor current.
+- VFD frequency.
+- Pump Intake Pressure (PIP).
+- Discharge pressure.
+- Motor temperature.
+- Vibration.
+- Power consumption.
+- A-annulus pressure.
+- B-annulus pressure.
+- Flowline pressure.
+- Flowline temperature.
+- RTU battery.
+- ESP health.
+
+Only display metrics supported by the selected asset's data model.
+
+If a parameter is unavailable, display N/A rather than generating a false value.
+
+Use suitable engineering units.
+
+## 6.3 Real-time telemetry charts
+
+Create asset-specific trend charts for available parameters:
+
+- Motor current.
+- VFD frequency.
+- Pump Intake Pressure.
+- Discharge pressure.
+- Motor temperature.
+- Vibration.
+- Production rate.
+- Power consumption.
+- Flowline pressure.
+- Flowline temperature.
+- Annulus pressure.
+
+Charts must update using the existing synthetic telemetry simulation service.
+
+Provide time filters:
+
+- Last 15 minutes.
+- Last 1 hour.
+- Last 6 hours.
+- Last 12 hours.
+- Last 24 hours.
+- Custom range, if supported.
+
+Provide clear axis labels, units, timestamps, legends, and tooltips.
+
+## 6.4 Asset-specific alarm table
+
+Show alarms belonging only to the selected asset.
+
+Columns:
+
+- Alarm ID.
+- Timestamp.
+- Asset short name.
+- Parameter.
+- Alarm description.
+- Severity.
+- Current value.
+- Threshold.
+- Status.
+- Acknowledgement.
+- Assigned user.
+
+Support filtering by severity and status.
+
+## 6.5 Asset-specific event history
+
+Display events related to the selected asset, such as:
+
+- Asset start.
+- Asset stop.
+- Shutdown.
+- Communication loss.
+- Alarm activation.
+- Alarm acknowledgement.
+- Maintenance activity.
+- Job creation.
+- Job completion.
+- Failure events.
+
+Use existing event and workflow data structures wherever possible.
+
+## 6.6 All Assets dashboard
+
+When All Assets is selected, display an overall operational view containing:
+
+- Total assets.
+- Running assets.
+- Down assets.
+- Assets in warning state.
+- Assets with communication issues.
+- Total active alarms.
+- Overall production.
+- Asset status distribution.
+- Asset comparison.
+- Recent alarms and events.
+
+Ensure that selecting an individual asset and returning to All Assets works correctly.
+
+---
+
+# PART 7 — OPERATIONS DASHBOARD
+
+Create a dedicated User Portal Operations Dashboard.
+
+This is the landing page after an operational user signs in.
+
+Display:
+
+- Total monitored assets.
+- Running assets.
+- Down assets.
+- Assets with active alarms.
+- Assets without communication.
+- Total production.
+- Average ESP health.
+- Active jobs.
+- Open maintenance tasks.
+
+Include:
+
+- Running versus Down asset distribution.
+- Production trend.
+- Active alarm summary.
+- Recent operational events.
+- Top assets requiring attention.
+- Asset status table.
+- Quick links to operational modules.
+
+The dashboard must use the same asset records and telemetry data as the Asset Monitoring panel.
+
+Do not create a separate disconnected set of dashboard assets.
+
+---
+
+# PART 8 — ASSET HIERARCHY AND ASSET TABLES
+
+Create an operational asset hierarchy and asset table based on existing project data and the PDF reference.
+
+The hierarchy should support the levels available in the existing application, such as:
+
+Basin → Field → Pad → Well → ESP/Device.
+
+Do not invent missing hierarchy levels or relationships.
+
+The asset table should display relevant fields such as:
+
+- Asset short name.
+- Asset full name.
+- Asset ID.
+- Basin.
+- Field.
+- Pad.
+- Well.
+- Operational status.
+- Production.
+- Active alarms.
+- Last communication.
+- ESP/device status.
+
+Provide:
+
+- Search.
+- Sorting.
+- Filtering.
+- Pagination.
+- Status filters.
+- Asset detail view.
+- Row selection.
+- Navigation to the selected asset dashboard.
+
+Use consistent asset IDs and short names across every module.
+
+---
+
+# PART 9 — SCADA MONITORING
+
+Create or enhance the User Portal SCADA Monitoring module.
+
+Display synthetic telemetry for available parameters, including:
+
+- Pressure.
+- Temperature.
+- Flow rate.
+- Motor current.
+- VFD frequency.
+- Voltage.
+- Power.
+- Vibration.
+- RTU communication.
+- Battery status.
+
+Include:
+
+- Asset selection.
+- Parameter selection.
+- Time range selection.
+- Live simulation indicator.
+- Last updated timestamp.
+- Trend charts.
+- Alarm thresholds.
+- Status indicators.
+- Communication status.
+
+Selecting an asset in the Asset Monitoring panel must automatically select the same asset in SCADA Monitoring.
+
+Use shared telemetry services and consistent asset relationships.
+
+Clearly display:
+
+**DEMO SIMULATED DATA — Telemetry is synthesized for demonstration purposes and is not connected to physical live assets.**
+
+---
+
+# PART 10 — DIGITAL TWIN
+
+Create or enhance the User Portal Digital Twin module.
+
+Display an interactive operational representation of the selected well and artificial lift system.
+
+Where supported by existing data, include:
+
+- Wellhead.
+- Tubing.
+- Casing.
+- ESP assembly.
+- Pump.
+- Motor.
+- Intake.
+- Discharge.
+- Flowline.
+- Surface equipment.
+
+Display synthetic operational values alongside the relevant equipment.
+
+Allow the user to:
+
+- Select an asset.
+- Inspect equipment components.
+- View component status.
+- View available telemetry.
+- Identify alarm conditions.
+- Navigate to related performance charts.
+
+Use the selected asset from the Asset Monitoring panel.
+
+Do not claim that the Digital Twin represents a physically connected live asset.
+
+---
+
+# PART 11 — ESP AND PUMP PERFORMANCE
+
+Create or enhance the ESP Performance and Pump Performance modules.
+
+Display available engineering and operational parameters:
+
+- Pump speed.
+- Motor current.
+- Motor temperature.
+- Intake pressure.
+- Discharge pressure.
+- Pump differential pressure.
+- Flow rate.
+- Production.
+- Power.
+- Vibration.
+- ESP health.
+
+Where supported by the existing data, include:
+
+- Pump performance curves.
+- Operating point.
+- Flow versus head.
+- Efficiency.
+- Pump loading.
+- Performance comparison.
+- Historical performance trends.
+
+Do not fabricate engineering curves or sizing results without appropriate model data.
+
+If a value is simulated, clearly identify it as simulated.
+
+---
+
+# PART 12 — ALARM AND EVENT CENTER
+
+Create or enhance a dedicated operational Alarm & Event Center.
+
+Display:
+
+- Active alarms.
+- Acknowledged alarms.
+- Cleared alarms.
+- Critical alarms.
+- Warning alarms.
+- Informational events.
+
+Include:
+
+- Alarm ID.
+- Timestamp.
+- Asset short name.
+- Parameter.
+- Description.
+- Severity.
+- Current value.
+- Threshold.
+- Alarm status.
+- Assigned user.
+- Acknowledgement status.
+
+Support:
+
+- Search.
+- Filtering.
+- Sorting.
+- Acknowledge alarm.
+- Add comments.
+- Assign alarm.
+- View asset details.
+- Navigate to the selected asset dashboard.
+
+Alarm actions must respect the signed-in user's permissions.
+
+---
+
+# PART 13 — FAILURE REASON MONITORING
+
+Create or enhance the Failure Reason Monitoring module.
+
+Display available failure information, including:
+
+- Asset short name.
+- Failure date.
+- Failure category.
+- Failure reason.
+- Root cause.
+- Downtime.
+- Production impact.
+- Corrective action.
+- Current status.
+
+Include useful analytics:
+
+- Failures by category.
+- Failures by asset.
+- Failure frequency.
+- Downtime trends.
+- Production loss.
+- Repeated failure identification.
+
+Use existing failure records and relationships.
+
+Do not invent historical failures and present them as actual records. Clearly identify synthetic demonstration records.
+
+---
+
+# PART 14 — OPERATIONAL WORKFLOWS
+
+Create or enhance the User Portal Operational Workflows module.
+
+This must be an operational workflow interface, not an Admin configuration page.
+
+Support the workflow types already present in the project, including:
+
+- Cable-related jobs.
+- MLE-related jobs.
+- ESP installation.
+- ESP replacement.
+- Inspection.
+- Maintenance.
+- Troubleshooting.
+
+Display a workflow table with:
+
+- Job ID.
+- Asset short name.
+- Job type.
+- Job description.
+- Priority.
+- Assigned person.
+- Created date.
+- Scheduled date.
+- Current stage.
+- Status.
+
+Support workflow stages such as:
+
+- Created.
+- Assigned.
+- Planned.
+- In Progress.
+- On Hold.
+- Completed.
+- Closed.
+
+Use existing workflow definitions where they exist.
+
+Allow authorized operational users to:
+
+- View jobs.
+- Open job details.
+- Update permitted job fields.
+- Add comments.
+- Update job progress.
+- View job history.
+- View the associated asset dashboard.
+
+Do not allow users to perform Admin-only configuration actions.
+
+---
+
+# PART 15 — CABLE SHOP
+
+Create or enhance the Cable Shop operational module if it is supported by the existing source and PDF reference.
+
+Provide an operational stage-based workflow.
+
+Where supported, include the eight existing/reference stages.
+
+Do not invent stage names if they are defined in the existing project or PDF.
+
+Display:
+
+- Cable/job ID.
+- Associated asset short name.
+- Cable identification.
+- Current stage.
+- Stage status.
+- Assigned technician.
+- Start date.
+- Completion date.
+- Remarks.
+- Inspection results.
+
+Provide a visual progress tracker and stage history.
+
+Users with appropriate permissions should be able to update their assigned stages.
+
+---
+
+# PART 16 — FLEET MONITORING
+
+Create or enhance the User Portal Fleet Monitoring module using existing synthetic fleet records.
+
+Display:
+
+- Vehicles.
+- Drivers.
+- Trips.
+- Vehicle status.
+- Driver status.
+- Route progress.
+- Distance.
+- Speed.
+- Fuel level.
+- Fuel consumption.
+- Fuel efficiency.
+- Maintenance status.
+
+Include:
+
+- Fleet overview.
+- Vehicle table.
+- Driver table.
+- Trip table.
+- Route visualization, if already supported.
+- Fuel analytics.
+- Maintenance alerts.
+- Vehicle detail view.
+
+Use synthetic fleet data and clearly label it.
+
+Do not connect to actual GPS devices or fleet tracking systems.
+
+---
+
+# PART 17 — REPORTS AND ANALYTICS
+
+Create or enhance the User Portal Report Center.
+
+Include:
+
+- Date range filters.
+- Asset filters.
+- Operational KPI cards.
+- Production reports.
+- ESP performance reports.
+- SCADA parameter reports.
+- Alarm reports.
+- Failure reports.
+- Downtime reports.
+- Workflow/job reports.
+- Fleet and fuel reports.
+
+Include:
+
+- Charts.
+- Tables.
+- Weekly and monthly trends.
+- Report templates.
+- CSV export.
+- Print-friendly views where supported.
+
+All reports must use the same shared asset and operational data.
+
+Clearly identify simulated data in the reports.
+
+---
+
+# PART 18 — SYNTHETIC REAL-TIME DATA ENGINE
+
+Implement or enhance one shared synthetic telemetry engine.
+
+Do not create independent random telemetry generators in each module.
+
+The same asset must have consistent synthetic telemetry throughout the application.
+
+For example, when a selected asset is Down:
+
+- Its status must appear as Down in the Asset Monitoring panel.
+- Its status must appear as Down in the Operations Dashboard.
+- Its asset-specific dashboard must show the same status.
+- Related alarm and event records must use the same asset ID.
+- SCADA Monitoring must display the same asset.
+- Reports must use consistent asset relationships.
+
+Support:
+
+- Automatic simulated telemetry updates.
+- Pause.
+- Resume.
+- Reset.
+- Last updated timestamp.
+- Historical synthetic data.
+- Time-range filtering.
+- Consistent asset relationships.
+- No duplicate telemetry records during updates.
+
+The simulation may update every few seconds.
+
+Clearly label the system:
+
+**DEMO SIMULATED DATA — Telemetry is synthesized for demonstration purposes and is not connected to physical live assets.**
+
+Never imply that simulated values are actual live SCADA measurements.
+
+---
+
+# PART 19 — DATA CONSISTENCY AND RELATIONSHIPS
+
+This requirement is essential.
+
+Use a consistent relationship structure across the entire application.
+
+Use the existing asset ID as the primary relationship key.
+
+Use asset short name as the main operational display identifier.
+
+All related modules must use the same asset identity:
+
+- Asset Monitoring.
+- Operations Dashboard.
+- Asset Hierarchy.
+- SCADA.
+- Digital Twin.
+- ESP.
+- Pump.
+- Alarms.
+- Events.
+- Failure Monitoring.
+- Maintenance.
+- Workflows.
+- Cable Shop.
+- Fleet, where applicable.
+- Reports.
+
+Do not match records using display names alone when a stable asset ID is available.
+
+Do not create duplicate asset records to support different modules.
+
+---
+
+# PART 20 — USER EXPERIENCE AND VISUAL DESIGN
+
+The User Portal must look and feel like a professional oilfield operational surveillance application.
+
+Use a dark industrial interface consistent with the existing ALS visual language.
+
+Design requirements:
+
+- Separate User Portal layout.
+- Dedicated User Portal navigation.
+- Separate Asset Monitoring panel.
+- Running and Down status indicators.
+- Clear selected-asset highlighting.
+- Operational KPI cards.
+- Professional charts.
+- Dense but readable data tables.
+- Consistent spacing.
+- Clear typography.
+- Useful tooltips.
+- Responsive layout.
+- Collapsible side panels.
+- Loading states.
+- Empty states.
+- Error states.
+- Confirmation dialogs.
+- Accessible controls.
+
+Use green for Running, red for Down, amber for Warning, and neutral colors for inactive or unknown states.
+
+Do not overload the screen with unnecessary decorative elements.
+
+The asset panel must remain easy to use even when there are many assets.
+
+---
+
+# PART 21 — ADMIN PORTAL MUST REMAIN UNCHANGED
+
+This is a strict requirement.
+
+The Admin Portal already exists and must be preserved.
+
+Do not replace its layout with the new User Portal layout.
+
+Do not remove:
+
+- Existing Admin dashboard.
+- Existing Admin sidebar.
+- Existing Admin navigation.
+- Existing user management.
+- Existing asset/device/ESP/pump management.
+- Existing SCADA management.
+- Existing alarm management.
+- Existing failure management.
+- Existing job workflows.
+- Existing fleet management.
+- Existing reports.
+- Existing settings.
+- Existing CRUD functions.
+- Existing role and permission configuration.
+
+The new User Portal must be implemented separately.
+
+If shared components need modification, ensure the changes do not break the Admin Portal.
+
+---
+
+# PART 22 — IMPLEMENTATION PLAN
+
+Do not attempt a risky full rewrite.
+
+Implement the enhancements in logical stages while preserving the existing project.
+
+### Phase 1 — Source inspection and protection
+
+- Inspect the complete source.
+- Identify Admin and User Portal architecture.
+- Identify existing data models and services.
+- Identify current authentication and role configuration.
+- Identify existing demo credentials.
+- Identify existing asset short names and statuses.
+- Identify incomplete features.
+- Make a concise implementation plan.
+
+### Phase 2 — Authentication and access control
+
+- Complete username/password login.
+- Verify demo-user configuration.
+- Verify roles.
+- Verify portal permissions.
+- Protect Admin routes.
+- Preserve Admin functionality.
+- Add correct User Portal routing.
+
+### Phase 3 — Separate User Portal interface
+
+- Create a dedicated User Portal layout.
+- Create dedicated navigation.
+- Create the Asset Monitoring left panel.
+- Add Running and Down asset groups.
+- Add asset search and selection.
+- Add All Assets selection.
+
+### Phase 4 — Asset-specific dashboard
+
+- Create selected-asset header.
+- Add asset-specific KPI cards.
+- Add real-time synthetic telemetry charts.
+- Add asset-specific alarms.
+- Add asset-specific event history.
+- Add All Assets dashboard.
+
+### Phase 5 — Operational modules
+
+- Enhance SCADA Monitoring.
+- Enhance Digital Twin.
+- Enhance ESP and Pump Performance.
+- Enhance Alarm & Event Center.
+- Enhance Failure Reason Monitoring.
+- Enhance Operational Workflows.
+- Enhance Cable Shop.
+- Enhance Fleet Monitoring.
+- Enhance Reports & Analytics.
+
+### Phase 6 — Data consistency
+
+- Connect all modules to shared asset records.
+- Connect all modules to the shared synthetic telemetry service.
+- Verify asset IDs and short names.
+- Verify status consistency.
+- Verify selected-asset filtering.
+
+### Phase 7 — Validation
+
+- Run the project's existing build and TypeScript checks.
+- Resolve errors introduced by the changes.
+- Test Admin login.
+- Test User login.
+- Test role restrictions.
+- Test portal navigation.
+- Test Running and Down asset groups.
+- Test asset selection.
+- Test asset-specific dashboard filtering.
+- Test All Assets view.
+- Test alarms and events.
+- Test workflow updates.
+- Test telemetry simulation.
+- Test reports and exports.
+- Confirm the Admin Portal remains functional.
+
+---
+
+# PART 23 — REQUIRED ACCEPTANCE TESTS
+
+Do not mark the task complete until the following checks have been performed.
+
+## Login tests
+
+- Admin can log in using configured Admin credentials.
+- Operational user can log in using configured User credentials.
+- Invalid credentials are rejected.
+- Inactive users are blocked.
+- Pending users cannot access protected modules.
+- Sign-out works.
+- Session persistence works as designed.
+
+## Access tests
+
+- Admin can access the Admin Portal.
+- Authorized operational users can access the User Portal.
+- Users without Admin permission cannot access Admin routes.
+- Portal switching is permission-controlled.
+- Admin Portal functionality is preserved.
+
+## Asset Monitoring tests
+
+- All existing assets appear in the left-side panel.
+- Running assets appear in the Running group.
+- Down assets appear in the Down group.
+- Asset short names are displayed correctly.
+- Search works.
+- Expand/collapse works.
+- Asset selection works.
+- Selected asset is highlighted.
+- All Assets selection restores the overall view.
+
+## Asset dashboard tests
+
+- Selecting an asset updates the right-side dashboard.
+- KPI cards display data for the selected asset.
+- Charts display data for the selected asset.
+- Alarm table displays alarms for the selected asset.
+- Event history displays events for the selected asset.
+- Switching between assets updates the dashboard correctly.
+- Missing parameters display N/A.
+- No unrelated asset telemetry is displayed.
+
+## Data consistency tests
+
+- Asset status is consistent across modules.
+- Asset IDs are consistent across modules.
+- Asset short names are consistent across modules.
+- Synthetic telemetry is shared.
+- No duplicate telemetry records are created during updates.
+- Pausing and resuming simulation works.
+- No real SCADA connection is made.
+
+## Admin protection tests
+
+- Existing Admin dashboard works.
+- Existing Admin sidebar works.
+- Existing Admin navigation works.
+- Existing Admin CRUD functions work.
+- Existing Admin user management works.
+- Existing Admin permissions work.
+- No User Portal changes break Admin functionality.
+
+---
+
+# PART 24 — FINAL IMPLEMENTATION REPORT
+
+After implementation, provide a clear report containing:
+
+1. Existing features inspected.
+2. Features completed.
+3. Features enhanced.
+4. Features not implemented.
+5. Files created.
+6. Files modified.
+7. Authentication behavior.
+8. Configured demo usernames and passwords, if available.
+9. Operational roles and portal permissions.
+10. Asset Monitoring panel behavior.
+11. Running and Down asset counts.
+12. Asset-specific dashboard behavior.
+13. Synthetic telemetry behavior.
+14. Admin Portal preservation results.
+15. Build and TypeScript validation results.
+16. Remaining errors or limitations.
+
+Do not claim that a feature is complete unless it has actually been implemented and verified.
+
+If a requirement cannot be implemented because the existing source lacks the required data or functionality, explain exactly what is missing.
+
+---
+
+# FINAL INSTRUCTION
+
+First inspect the existing project and identify the current implementation.
+
+Then implement the requirements in the phases above.
+
+**Do not rebuild the application. Do not remove existing functionality. Do not redesign the Admin Portal.**
+
+The final application must provide:
+
+- A working username/password login using configured accounts.
+- Role-based access to Admin and User Portals.
+- The existing Admin Portal preserved.
+- A completely separate operational User Portal.
+- A left-side Asset Monitoring panel.
+- Running and Down asset lists using actual asset short names.
+- An asset-specific operational dashboard on the right.
+- Consistent synthetic telemetry, alarms, events, and asset relationships.
+- Operational tables and workflows.
+- A professional ALS industrial surveillance experience.
+
+**Priority: preserve the existing application first, implement the User Portal second, and validate both portals before declaring completion.**

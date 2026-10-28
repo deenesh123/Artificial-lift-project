@@ -67,7 +67,7 @@ import { StorageService } from '../../services/storageService';
 
 export const VehicleTrackingView: React.FC = () => {
   // Navigation tabs
-  const [activeTab, setActiveTab] = useState<'map' | 'vehicles' | 'drivers' | 'trips' | 'maintenance' | 'fuel'>('map');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'map' | 'vehicles' | 'drivers' | 'trips' | 'maintenance' | 'fuel'>('dashboard');
 
   // Datasets from FleetService
   const [vehicles, setVehicles] = useState<FleetVehicle[]>(() => FleetService.getVehicles());
@@ -314,6 +314,14 @@ export const VehicleTrackingView: React.FC = () => {
         {/* Tab Controls */}
         <div className="flex flex-wrap items-center gap-1 bg-slate-950 p-1 rounded-lg border border-slate-800 text-xs font-medium">
           <button
+            onClick={() => setActiveTab('dashboard')}
+            className={`px-3 py-1.5 rounded-md transition-colors ${
+              activeTab === 'dashboard' ? 'bg-cyan-600 text-white font-semibold' : 'text-slate-400 hover:text-white'
+            }`}
+          >
+            Central Fleet Dashboard (Slide 30-31)
+          </button>
+          <button
             onClick={() => setActiveTab('map')}
             className={`px-3 py-1.5 rounded-md transition-colors ${
               activeTab === 'map' ? 'bg-cyan-600 text-white font-semibold' : 'text-slate-400 hover:text-white'
@@ -359,10 +367,326 @@ export const VehicleTrackingView: React.FC = () => {
               activeTab === 'fuel' ? 'bg-cyan-600 text-white font-semibold' : 'text-slate-400 hover:text-white'
             }`}
           >
-            Fuel & Finance
+            Fuel & Efficiency (Slide 36-37)
           </button>
         </div>
       </div>
+
+      {/* TAB 0: CENTRAL FLEET DASHBOARD (Slide 30 & 31) */}
+      {activeTab === 'dashboard' && (
+        <div className="space-y-6">
+          {/* Slide 30: 6 Hero KPI Cards */}
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+            <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
+              <span className="text-[11px] font-mono text-slate-400 uppercase tracking-wider block">Asset Utilization</span>
+              <div className="flex items-baseline gap-2 mt-1">
+                <span className="text-3xl font-extrabold font-mono text-cyan-400">92%</span>
+                <span className="text-[10px] font-mono text-emerald-400 font-semibold">+4.2%</span>
+              </div>
+              <div className="mt-2 w-full bg-slate-800 rounded-full h-1.5 overflow-hidden">
+                <div className="bg-cyan-500 h-1.5 rounded-full" style={{ width: '92%' }} />
+              </div>
+              <span className="text-[10px] text-slate-400 mt-1.5 block">Target &gt;85% • 46/50 Deployed</span>
+            </div>
+
+            <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
+              <span className="text-[11px] font-mono text-slate-400 uppercase tracking-wider block">Fuel Economy</span>
+              <div className="flex items-baseline gap-2 mt-1">
+                <span className="text-3xl font-extrabold font-mono text-emerald-400">8.5</span>
+                <span className="text-xs font-mono text-slate-400">km/L</span>
+              </div>
+              <div className="mt-2 w-full bg-slate-800 rounded-full h-1.5 overflow-hidden">
+                <div className="bg-emerald-500 h-1.5 rounded-full" style={{ width: '85%' }} />
+              </div>
+              <span className="text-[10px] text-slate-400 mt-1.5 block">20.0 MPG • Target 8.0 km/L</span>
+            </div>
+
+            <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
+              <span className="text-[11px] font-mono text-slate-400 uppercase tracking-wider block">Operating Expenses</span>
+              <div className="flex items-baseline gap-2 mt-1">
+                <span className="text-2xl font-extrabold font-mono text-amber-400">$150k</span>
+                <span className="text-[10px] font-mono text-slate-400">/ $165k</span>
+              </div>
+              <div className="mt-2 w-full bg-slate-800 rounded-full h-1.5 overflow-hidden">
+                <div className="bg-amber-500 h-1.5 rounded-full" style={{ width: '91.2%' }} />
+              </div>
+              <span className="text-[10px] text-slate-400 mt-1.5 block">91.2% of Monthly Budget</span>
+            </div>
+
+            <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
+              <span className="text-[11px] font-mono text-slate-400 uppercase tracking-wider block">Active Exceptions</span>
+              <div className="flex items-baseline gap-2 mt-1">
+                <span className="text-3xl font-extrabold font-mono text-rose-400">3</span>
+                <span className="text-[10px] font-mono text-rose-400 flex items-center gap-1 font-semibold">
+                  <span className="w-1.5 h-1.5 rounded-full bg-rose-400 animate-ping" />
+                  Alerts
+                </span>
+              </div>
+              <div className="mt-2 w-full bg-slate-800 rounded-full h-1.5 overflow-hidden">
+                <div className="bg-rose-500 h-1.5 rounded-full" style={{ width: '60%' }} />
+              </div>
+              <span className="text-[10px] text-slate-400 mt-1.5 block">1 Speed, 1 Siphon, 1 DTC</span>
+            </div>
+
+            <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
+              <span className="text-[11px] font-mono text-slate-400 uppercase tracking-wider block">Fleet Status</span>
+              <div className="flex items-baseline gap-2 mt-1">
+                <span className="text-3xl font-extrabold font-mono text-white">47</span>
+                <span className="text-xs font-mono text-slate-400">/ 50 Active</span>
+              </div>
+              <div className="mt-2 w-full bg-slate-800 rounded-full h-1.5 overflow-hidden">
+                <div className="bg-cyan-500 h-1.5 rounded-full" style={{ width: '94%' }} />
+              </div>
+              <span className="text-[10px] text-slate-400 mt-1.5 block">3 In Shop for Maintenance</span>
+            </div>
+
+            <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
+              <span className="text-[11px] font-mono text-slate-400 uppercase tracking-wider block">SLA Compliance</span>
+              <div className="flex items-baseline gap-2 mt-1">
+                <span className="text-3xl font-extrabold font-mono text-emerald-400">98.5%</span>
+                <span className="text-[10px] font-mono text-emerald-400 font-semibold">On-Time</span>
+              </div>
+              <div className="mt-2 w-full bg-slate-800 rounded-full h-1.5 overflow-hidden">
+                <div className="bg-emerald-500 h-1.5 rounded-full" style={{ width: '98.5%' }} />
+              </div>
+              <span className="text-[10px] text-slate-400 mt-1.5 block">Field Workover Dispatch SLA</span>
+            </div>
+          </div>
+
+          {/* Slide 31: Active Routes & Fleet Alert Feed */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            {/* Active Routes Progress (7 cols) */}
+            <div className="lg:col-span-7 bg-slate-900 border border-slate-800 rounded-xl p-5 space-y-4">
+              <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+                <div className="flex items-center gap-2">
+                  <Navigation className="w-4 h-4 text-cyan-400" />
+                  <h3 className="text-sm font-bold text-white uppercase tracking-wider font-mono">
+                    Active Routes & Telemetry Progress (Slide 31)
+                  </h3>
+                </div>
+                <span className="text-xs font-mono text-cyan-400">4 En Route</span>
+              </div>
+
+              <div className="space-y-4">
+                {/* Route 1 */}
+                <div className="bg-slate-950 border border-slate-800/80 rounded-lg p-3.5 space-y-2 hover:border-cyan-500/40 transition-colors">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-bold text-white">Route to Port Authority</span>
+                        <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-cyan-950 text-cyan-300 border border-cyan-800">
+                          CRN-01 • Kenworth C500
+                        </span>
+                      </div>
+                      <span className="text-xs text-slate-400 font-sans">
+                        Driver: <strong className="text-slate-200">J. Henderson</strong> • Cargo: <span className="text-amber-300">ESP Tubing Spool (1,850m)</span>
+                      </span>
+                    </div>
+                    <div className="text-right">
+                      <span className="text-base font-bold font-mono text-cyan-400">65%</span>
+                      <span className="text-[11px] block font-mono text-slate-400">ETA: 42m</span>
+                    </div>
+                  </div>
+                  <div className="w-full bg-slate-900 rounded-full h-2 overflow-hidden border border-slate-800">
+                    <div className="bg-cyan-500 h-2 rounded-full transition-all duration-500" style={{ width: '65%' }} />
+                  </div>
+                  <div className="flex justify-between text-[11px] font-mono text-slate-400">
+                    <span>Origin: Pecos Central Yard</span>
+                    <span>84.5 km / 130 km Total</span>
+                    <span>Speed: 52 mph</span>
+                  </div>
+                </div>
+
+                {/* Route 2 */}
+                <div className="bg-slate-950 border border-slate-800/80 rounded-lg p-3.5 space-y-2 hover:border-cyan-500/40 transition-colors">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-bold text-white">Route to Main Warehouse</span>
+                        <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-cyan-950 text-cyan-300 border border-cyan-800">
+                          WRL-02 • Peterbilt 389
+                        </span>
+                      </div>
+                      <span className="text-xs text-slate-400 font-sans">
+                        Driver: <strong className="text-slate-200">M. Garcia</strong> • Cargo: <span className="text-cyan-300">Downhole Sensor Mandrels</span>
+                      </span>
+                    </div>
+                    <div className="text-right">
+                      <span className="text-base font-bold font-mono text-cyan-400">42%</span>
+                      <span className="text-[11px] block font-mono text-slate-400">ETA: 1h 15m</span>
+                    </div>
+                  </div>
+                  <div className="w-full bg-slate-900 rounded-full h-2 overflow-hidden border border-slate-800">
+                    <div className="bg-cyan-500 h-2 rounded-full transition-all duration-500" style={{ width: '42%' }} />
+                  </div>
+                  <div className="flex justify-between text-[11px] font-mono text-slate-400">
+                    <span>Origin: Delaware Base Depot</span>
+                    <span>52.0 km / 124 km Total</span>
+                    <span>Speed: 48 mph</span>
+                  </div>
+                </div>
+
+                {/* Route 3 */}
+                <div className="bg-slate-950 border border-slate-800/80 rounded-lg p-3.5 space-y-2 hover:border-emerald-500/40 transition-colors">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-bold text-white">Route to Distribution Center</span>
+                        <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-emerald-950 text-emerald-300 border border-emerald-800">
+                          CHM-04 • Ford F-450 Runner
+                        </span>
+                      </div>
+                      <span className="text-xs text-slate-400 font-sans">
+                        Driver: <strong className="text-slate-200">D. Miller</strong> • Cargo: <span className="text-emerald-300">Scale Inhibitor Chemical (48 gal)</span>
+                      </span>
+                    </div>
+                    <div className="text-right">
+                      <span className="text-base font-bold font-mono text-emerald-400">88%</span>
+                      <span className="text-[11px] block font-mono text-slate-400">ETA: 18m</span>
+                    </div>
+                  </div>
+                  <div className="w-full bg-slate-900 rounded-full h-2 overflow-hidden border border-slate-800">
+                    <div className="bg-emerald-500 h-2 rounded-full transition-all duration-500" style={{ width: '88%' }} />
+                  </div>
+                  <div className="flex justify-between text-[11px] font-mono text-slate-400">
+                    <span>Origin: Kermit Chemical Terminal</span>
+                    <span>105.6 km / 120 km Total</span>
+                    <span>Speed: 58 mph</span>
+                  </div>
+                </div>
+
+                {/* Route 4 */}
+                <div className="bg-slate-950 border border-slate-800/80 rounded-lg p-3.5 space-y-2 hover:border-amber-500/40 transition-colors">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-bold text-white">Route to Permian Plinth 4</span>
+                        <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-amber-950 text-amber-300 border border-amber-800">
+                          SLK-03 • Mack Granite
+                        </span>
+                      </div>
+                      <span className="text-xs text-slate-400 font-sans">
+                        Driver: <strong className="text-slate-200">T. Jackson</strong> • Cargo: <span className="text-amber-300">Heavy Slickline Workover Unit</span>
+                      </span>
+                    </div>
+                    <div className="text-right">
+                      <span className="text-base font-bold font-mono text-amber-400">25%</span>
+                      <span className="text-[11px] block font-mono text-slate-400">ETA: 2h 05m</span>
+                    </div>
+                  </div>
+                  <div className="w-full bg-slate-900 rounded-full h-2 overflow-hidden border border-slate-800">
+                    <div className="bg-amber-500 h-2 rounded-full transition-all duration-500" style={{ width: '25%' }} />
+                  </div>
+                  <div className="flex justify-between text-[11px] font-mono text-slate-400">
+                    <span>Origin: Midland Operations Hub</span>
+                    <span>35.0 km / 140 km Total</span>
+                    <span>Speed: 44 mph</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Fleet Alert Feed (5 cols) */}
+            <div className="lg:col-span-5 bg-slate-900 border border-slate-800 rounded-xl p-5 space-y-4">
+              <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+                <div className="flex items-center gap-2">
+                  <AlertTriangle className="w-4 h-4 text-rose-400" />
+                  <h3 className="text-sm font-bold text-white uppercase tracking-wider font-mono">
+                    Fleet Alert Feed (Slide 31)
+                  </h3>
+                </div>
+                <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-rose-950 text-rose-300 border border-rose-800 font-semibold">
+                  3 Active
+                </span>
+              </div>
+
+              <div className="space-y-3">
+                {/* Alert 1 */}
+                <div className="bg-slate-950 border-l-4 border-l-rose-500 border border-slate-800 rounded-r-lg p-3 space-y-1">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-rose-400 uppercase font-mono flex items-center gap-1.5">
+                      <span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse" />
+                      Speed Limit Violation
+                    </span>
+                    <span className="text-[10px] font-mono text-slate-400">14 min ago</span>
+                  </div>
+                  <p className="text-xs text-white">
+                    Unit <strong className="text-cyan-400 font-mono">CRN-02</strong> exceeded posted limit: clocked at <strong className="text-rose-400 font-mono">78 mph</strong> in 60 mph designated zone on US-285.
+                  </p>
+                  <div className="flex items-center justify-between pt-1">
+                    <span className="text-[10px] font-mono text-slate-400">Driver: Travis McCord</span>
+                    <button
+                      onClick={() => showToast('Dispatch sent in-cab speed advisory warning to CRN-02 telematics head unit.')}
+                      className="px-2 py-0.5 rounded bg-rose-950 hover:bg-rose-900 border border-rose-800 text-[10px] font-mono text-rose-200"
+                    >
+                      Warn Driver
+                    </button>
+                  </div>
+                </div>
+
+                {/* Alert 2 */}
+                <div className="bg-slate-950 border-l-4 border-l-amber-500 border border-slate-800 rounded-r-lg p-3 space-y-1">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-amber-400 uppercase font-mono flex items-center gap-1.5">
+                      <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
+                      Unexpected Fuel Drop
+                    </span>
+                    <span className="text-[10px] font-mono text-slate-400">38 min ago</span>
+                  </div>
+                  <p className="text-xs text-white">
+                    Unit <strong className="text-cyan-400 font-mono">TKR-05</strong> detected rapid tank drop (<strong className="text-amber-400 font-mono">-22%</strong> in 15 mins) while stationary at Plinth 12. Potential siphon or drain leak.
+                  </p>
+                  <div className="flex items-center justify-between pt-1">
+                    <span className="text-[10px] font-mono text-slate-400">Driver: Garrett Holt</span>
+                    <button
+                      onClick={() => showToast('Investigative work ticket dispatched to field security.')}
+                      className="px-2 py-0.5 rounded bg-amber-950 hover:bg-amber-900 border border-amber-800 text-[10px] font-mono text-amber-200"
+                    >
+                      Flag Security
+                    </button>
+                  </div>
+                </div>
+
+                {/* Alert 3 */}
+                <div className="bg-slate-950 border-l-4 border-l-cyan-500 border border-slate-800 rounded-r-lg p-3 space-y-1">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-cyan-400 uppercase font-mono flex items-center gap-1.5">
+                      <span className="w-2 h-2 rounded-full bg-cyan-500" />
+                      Engine Diagnostic DTC
+                    </span>
+                    <span className="text-[10px] font-mono text-slate-400">1 hr ago</span>
+                  </div>
+                  <p className="text-xs text-white">
+                    Unit <strong className="text-cyan-400 font-mono">WRL-01</strong> triggered <strong className="text-cyan-300 font-mono">DTC P0420</strong> (Catalyst System Efficiency Below Threshold - Bank 1).
+                  </p>
+                  <div className="flex items-center justify-between pt-1">
+                    <span className="text-[10px] font-mono text-slate-400">Driver: Preston Miller</span>
+                    <button
+                      onClick={() => showToast('Maintenance service ticket queued for Pecos Depot.')}
+                      className="px-2 py-0.5 rounded bg-cyan-950 hover:bg-cyan-900 border border-cyan-800 text-[10px] font-mono text-cyan-200"
+                    >
+                      Book Service
+                    </button>
+                  </div>
+                </div>
+
+                {/* Alert 4 */}
+                <div className="bg-slate-950 border-l-4 border-l-slate-600 border border-slate-800 rounded-r-lg p-3 space-y-1">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-slate-300 uppercase font-mono">
+                      Excessive Idle Warning
+                    </span>
+                    <span className="text-[10px] font-mono text-slate-400">2 hr ago</span>
+                  </div>
+                  <p className="text-xs text-slate-300">
+                    Unit <strong className="text-cyan-400 font-mono">CREW-18</strong> idled for &gt;45 minutes at Delaware Station 04 with AC running. Fuel loss: ~1.2 gal.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* TAB 1: LIVE VEHICLE MAP & DISPATCH COCKPIT */}
       {activeTab === 'map' && (
@@ -1044,79 +1368,234 @@ export const VehicleTrackingView: React.FC = () => {
         </div>
       )}
 
-      {/* TAB 6: FUEL ANALYTICS & TRANSACTION LOG */}
+      {/* TAB 6: FUEL ANALYTICS & TRANSACTION LOG (Slide 36 & 37) */}
       {activeTab === 'fuel' && (
         <div className="space-y-6">
-          {/* Fuel Stats Strip */}
+          {/* Slide 36: 4 Fuel KPI Cards */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            <div className="bg-slate-900 border border-slate-800 rounded-xl p-3.5">
-              <span className="text-xs text-slate-400 block font-mono">TOTAL DIESEL PURCHASED</span>
-              <span className="text-2xl font-bold font-mono text-cyan-400 mt-1 block">18,420 Gal</span>
-              <span className="text-[10px] text-slate-500 font-mono">Month-to-Date Volume</span>
+            <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
+              <span className="text-[11px] font-mono text-slate-400 uppercase tracking-wider block">Total Fuel Cost</span>
+              <div className="flex items-baseline gap-2 mt-1">
+                <span className="text-3xl font-extrabold font-mono text-cyan-400">$800.50</span>
+              </div>
+              <div className="mt-2 w-full bg-slate-800 rounded-full h-1.5 overflow-hidden">
+                <div className="bg-cyan-500 h-1.5 rounded-full" style={{ width: '82%' }} />
+              </div>
+              <span className="text-[10px] text-slate-400 mt-1.5 block">Shift Consumption Total (Slide 36)</span>
             </div>
-            <div className="bg-slate-900 border border-slate-800 rounded-xl p-3.5">
-              <span className="text-xs text-slate-400 block font-mono">FLEET AVERAGE MPG</span>
-              <span className="text-2xl font-bold font-mono text-emerald-400 mt-1 block">7.2 MPG</span>
-              <span className="text-[10px] text-emerald-500 font-mono">+0.4 MPG vs Target</span>
+
+            <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
+              <span className="text-[11px] font-mono text-slate-400 uppercase tracking-wider block">Avg Fuel Consumed</span>
+              <div className="flex items-baseline gap-2 mt-1">
+                <span className="text-3xl font-extrabold font-mono text-emerald-400">40.0</span>
+                <span className="text-xs font-mono text-slate-400">Liters</span>
+              </div>
+              <div className="mt-2 w-full bg-slate-800 rounded-full h-1.5 overflow-hidden">
+                <div className="bg-emerald-500 h-1.5 rounded-full" style={{ width: '75%' }} />
+              </div>
+              <span className="text-[10px] text-slate-400 mt-1.5 block">Per Active Unit / Shift</span>
             </div>
-            <div className="bg-slate-900 border border-slate-800 rounded-xl p-3.5">
-              <span className="text-xs text-slate-400 block font-mono">AVG DIESEL COST / GAL</span>
-              <span className="text-2xl font-bold font-mono text-amber-400 mt-1 block">$3.78</span>
-              <span className="text-[10px] text-slate-500 font-mono">Permian Cardlock Rate</span>
+
+            <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
+              <span className="text-[11px] font-mono text-slate-400 uppercase tracking-wider block">Fleet Efficiency</span>
+              <div className="flex items-baseline gap-2 mt-1">
+                <span className="text-3xl font-extrabold font-mono text-amber-400">8.4</span>
+                <span className="text-xs font-mono text-slate-400">km/L</span>
+              </div>
+              <div className="mt-2 w-full bg-slate-800 rounded-full h-1.5 overflow-hidden">
+                <div className="bg-amber-500 h-1.5 rounded-full" style={{ width: '84%' }} />
+              </div>
+              <span className="text-[10px] text-slate-400 mt-1.5 block">19.8 MPG • Target: 8.0 km/L</span>
             </div>
-            <div className="bg-slate-900 border border-slate-800 rounded-xl p-3.5">
-              <span className="text-xs text-slate-400 block font-mono">MONTHLY FUEL EXPENSE</span>
-              <span className="text-2xl font-bold font-mono text-white mt-1 block">$69,627</span>
-              <span className="text-[10px] text-slate-500 font-mono">22 Units Tracked</span>
+
+            <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
+              <span className="text-[11px] font-mono text-slate-400 uppercase tracking-wider block">Anomalies Detected</span>
+              <div className="flex items-baseline gap-2 mt-1">
+                <span className="text-3xl font-extrabold font-mono text-rose-400">2</span>
+                <span className="text-[10px] font-mono text-rose-400 flex items-center gap-1 font-semibold">
+                  <span className="w-1.5 h-1.5 rounded-full bg-rose-400 animate-ping" />
+                  Flagged
+                </span>
+              </div>
+              <div className="mt-2 w-full bg-slate-800 rounded-full h-1.5 overflow-hidden">
+                <div className="bg-rose-500 h-1.5 rounded-full" style={{ width: '50%' }} />
+              </div>
+              <span className="text-[10px] text-slate-400 mt-1.5 block">1 Siphon Drop, 1 High Burn</span>
             </div>
           </div>
 
-          {/* Transaction Log Table */}
+          {/* Slide 36: Fuel Transaction Log Table */}
           <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 space-y-3">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 pb-3">
               <div>
-                <h3 className="text-sm font-bold text-white uppercase tracking-wider font-mono">
-                  Fleet Transaction Log & Card Receipts
+                <h3 className="text-sm font-bold text-white uppercase tracking-wider font-mono flex items-center gap-2">
+                  <Fuel className="w-4 h-4 text-cyan-400" />
+                  Fuel Transaction Log (Slide 36)
                 </h3>
-                <p className="text-xs text-slate-400">Audited cardlock diesel, DEF fluid, tolls, and scheduled mechanical maintenance charges.</p>
+                <p className="text-xs text-slate-400">Audited cardlock diesel disbursements, fuel volume, calculated economy, and anomaly telemetry.</p>
               </div>
 
-              <span className="text-xs text-cyan-400 font-mono">7 Recent Purchases</span>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => {
+                    const headers = ['Txn ID', 'Timestamp', 'Vehicle Unit', 'Driver', 'Liters', 'Gallons', 'Amount (USD)', 'Odometer', 'Economy (km/L)', 'Location', 'Anomaly Tag', 'Receipt Ref'];
+                    const rows = transactions.map(t => [
+                      t.id,
+                      `"${t.timestamp}"`,
+                      t.vehicleCode,
+                      `"${t.driverName}"`,
+                      t.liters || 40.0,
+                      t.gallons || 10.6,
+                      t.amountUsd,
+                      t.odometer || 65000,
+                      t.economyKmL || 8.4,
+                      `"${t.location}"`,
+                      `"${t.anomaly || 'Normal'}"`,
+                      t.receiptRef
+                    ]);
+                    const csvContent = "data:text/csv;charset=utf-8," + [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+                    const encodedUri = encodeURI(csvContent);
+                    const link = document.createElement('a');
+                    link.setAttribute('href', encodedUri);
+                    link.setAttribute('download', `ALS_Fuel_Transactions_${new Date().toISOString().slice(0, 10)}.csv`);
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    showToast('Exported Fuel Transactions to CSV.');
+                  }}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-mono text-cyan-400 border border-slate-700 transition-colors"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  <span>Export CSV</span>
+                </button>
+              </div>
             </div>
 
             <div className="overflow-x-auto border border-slate-800 rounded-lg">
               <table className="w-full text-left text-xs font-mono">
                 <thead className="bg-slate-950/80 text-slate-400 border-b border-slate-800 uppercase text-[10px] tracking-wider">
                   <tr>
-                    <th className="px-3 py-2.5">Txn ID</th>
-                    <th className="px-3 py-2.5">Vehicle Unit</th>
+                    <th className="px-3 py-2.5">Date & Time</th>
+                    <th className="px-3 py-2.5">Vehicle</th>
                     <th className="px-3 py-2.5">Driver</th>
-                    <th className="px-3 py-2.5">Category</th>
-                    <th className="px-3 py-2.5">Location & Station</th>
-                    <th className="px-3 py-2.5">Volume</th>
-                    <th className="px-3 py-2.5">Amount (USD)</th>
+                    <th className="px-3 py-2.5">Liters (L)</th>
+                    <th className="px-3 py-2.5">Cost ($)</th>
+                    <th className="px-3 py-2.5">Odometer</th>
+                    <th className="px-3 py-2.5">Economy</th>
+                    <th className="px-3 py-2.5">Location</th>
+                    <th className="px-3 py-2.5">Anomaly Status</th>
                     <th className="px-3 py-2.5">Receipt Ref</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-800/60 bg-slate-900/50">
                   {transactions.map(txn => (
                     <tr key={txn.id} className="hover:bg-slate-800/40 transition-colors">
-                      <td className="px-3 py-2.5 font-bold text-cyan-400">{txn.id}</td>
+                      <td className="px-3 py-2.5 text-slate-300 font-sans text-[11px] whitespace-nowrap">{txn.timestamp}</td>
                       <td className="px-3 py-2.5 text-white font-bold">{txn.vehicleCode}</td>
                       <td className="px-3 py-2.5 font-sans text-slate-300">{txn.driverName}</td>
-                      <td className="px-3 py-2.5">
-                        <span className="px-2 py-0.5 rounded text-[10px] bg-slate-800 text-slate-300 border border-slate-700">
-                          {txn.type}
-                        </span>
-                      </td>
-                      <td className="px-3 py-2.5 text-slate-400 font-sans">{txn.location}</td>
-                      <td className="px-3 py-2.5 text-white">{txn.gallons ? `${txn.gallons} gal` : '—'}</td>
+                      <td className="px-3 py-2.5 text-white font-bold">{txn.liters ? `${txn.liters.toFixed(1)} L` : `${((txn.gallons || 10) * 3.785).toFixed(1)} L`}</td>
                       <td className="px-3 py-2.5 font-bold text-amber-400">${txn.amountUsd.toFixed(2)}</td>
+                      <td className="px-3 py-2.5 text-slate-300 font-mono text-[11px]">{txn.odometer?.toLocaleString() || '68,420'} km</td>
+                      <td className="px-3 py-2.5 font-bold text-emerald-400 font-mono">{txn.economyKmL ? `${txn.economyKmL} km/L` : '8.4 km/L'}</td>
+                      <td className="px-3 py-2.5 text-slate-400 font-sans">{txn.location}</td>
+                      <td className="px-3 py-2.5">
+                        {txn.anomaly && txn.anomaly !== 'Normal' ? (
+                          <span className={`px-2 py-0.5 rounded text-[10px] font-sans font-semibold border ${
+                            txn.anomaly.includes('Rapid') ? 'bg-rose-950 text-rose-300 border-rose-800' : 'bg-amber-950 text-amber-300 border-amber-800'
+                          }`}>
+                            {txn.anomaly}
+                          </span>
+                        ) : (
+                          <span className="px-2 py-0.5 rounded text-[10px] font-sans bg-emerald-950/60 text-emerald-400 border border-emerald-800/50">
+                            Normal
+                          </span>
+                        )}
+                      </td>
                       <td className="px-3 py-2.5 text-slate-500 font-mono text-[11px]">{txn.receiptRef}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
+            </div>
+          </div>
+
+          {/* Slide 37: Efficiency Analysis Card & Key Insights */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            {/* Fuel Economy by Vehicle Class Bar Chart (7 cols) */}
+            <div className="lg:col-span-7 bg-slate-900 border border-slate-800 rounded-xl p-5 space-y-4">
+              <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+                <div className="flex items-center gap-2">
+                  <TrendingUp className="w-4 h-4 text-emerald-400" />
+                  <h3 className="text-sm font-bold text-white uppercase tracking-wider font-mono">
+                    Efficiency Analysis: Fuel Economy by Vehicle Class (Slide 37)
+                  </h3>
+                </div>
+                <span className="text-xs font-mono text-slate-400">km / Liter</span>
+              </div>
+
+              <div className="h-64 w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart
+                    data={[
+                      { category: 'Heavy Crane', economy: 4.8, target: 4.5, fill: '#06b6d4' },
+                      { category: 'Wireline', economy: 5.4, target: 5.0, fill: '#3b82f6' },
+                      { category: 'Chemical Tanker', economy: 6.8, target: 6.5, fill: '#8b5cf6' },
+                      { category: 'Slickline', economy: 8.6, target: 8.0, fill: '#10b981' },
+                      { category: 'Crew Pickup', economy: 9.8, target: 9.0, fill: '#f59e0b' },
+                    ]}
+                    margin={{ top: 10, right: 20, left: 0, bottom: 20 }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
+                    <XAxis dataKey="category" stroke="#94a3b8" fontSize={11} />
+                    <YAxis stroke="#94a3b8" fontSize={11} domain={[0, 12]} />
+                    <Tooltip
+                      contentStyle={{ backgroundColor: '#020617', borderColor: '#334155', borderRadius: '0.5rem', fontSize: '12px' }}
+                      formatter={(val: any) => [`${val} km/L`, 'Average Economy']}
+                    />
+                    <Legend wrapperStyle={{ fontSize: '11px', paddingTop: '8px' }} />
+                    <Bar dataKey="economy" name="Actual Fuel Economy (km/L)" fill="#06b6d4" radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="target" name="Benchmark Target (km/L)" fill="#475569" radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+
+            {/* Key Insights Box (5 cols) */}
+            <div className="lg:col-span-5 bg-slate-900 border border-slate-800 rounded-xl p-5 space-y-4">
+              <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+                <div className="flex items-center gap-2">
+                  <ShieldCheck className="w-4 h-4 text-cyan-400" />
+                  <h3 className="text-sm font-bold text-white uppercase tracking-wider font-mono">
+                    Operational Fuel Insights (Slide 37)
+                  </h3>
+                </div>
+                <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-800">
+                  AI AUDIT
+                </span>
+              </div>
+
+              <div className="space-y-3 text-xs text-slate-300">
+                <div className="bg-slate-950 border border-slate-800 rounded-lg p-3 space-y-1">
+                  <span className="font-bold text-cyan-400 font-mono block">Crane Heavy Transit Economy</span>
+                  <p className="text-slate-300">
+                    Heavy crane units average <strong className="text-white">4.8 km/L</strong> during laden transit; unladen returns achieve 6.2 km/L. Recommended avoiding steep FM 652 grade during high winds.
+                  </p>
+                </div>
+
+                <div className="bg-slate-950 border border-slate-800 rounded-lg p-3 space-y-1">
+                  <span className="font-bold text-emerald-400 font-mono block">Pickup Idle Limiter Impact</span>
+                  <p className="text-slate-300">
+                    Field crew pickups demonstrated a <strong className="text-white">14% efficiency improvement</strong> following 10-minute auto-shutdown policy enforcement on pad sites.
+                  </p>
+                </div>
+
+                <div className="bg-slate-950 border border-slate-800 rounded-lg p-3 space-y-1">
+                  <span className="font-bold text-rose-400 font-mono block">2 Flagged Anomalies Under Review</span>
+                  <p className="text-slate-300">
+                    Unit <strong className="text-white">TKR-05</strong> flagged for sudden fuel volume delta (-22% drop) at Plinth 12. Unit <strong className="text-white">CRN-02</strong> flagged for high burn rate exceeding 1.8x baseline during transit.
+                  </p>
+                </div>
+              </div>
             </div>
           </div>
         </div>

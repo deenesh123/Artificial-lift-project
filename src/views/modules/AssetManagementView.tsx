@@ -29,12 +29,15 @@ import { StorageService } from '../../services/storageService';
 export const AssetManagementView: React.FC = () => {
   const [wells, setWells] = useState<WellAsset[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
+  const [tableMode, setTableMode] = useState<'hierarchy' | 'operations'>('hierarchy');
   const [liftFilter, setLiftFilter] = useState<string>('All');
   const [statusFilter, setStatusFilter] = useState<string>('All');
   const [basinFilter, setBasinFilter] = useState<string>('All');
+  const [zoneFilter, setZoneFilter] = useState<string>('All');
+  const [stationFilter, setStationFilter] = useState<string>('All');
   
   // Sorting
-  const [sortField, setSortField] = useState<keyof WellAsset>('name');
+  const [sortField, setSortField] = useState<keyof WellAsset>('wellCode');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
   
   // Pagination
@@ -80,6 +83,12 @@ export const AssetManagementView: React.FC = () => {
       const matchesSearch = 
         w.name.toLowerCase().includes(q) ||
         w.id.toLowerCase().includes(q) ||
+        (w.wellCode && w.wellCode.toLowerCase().includes(q)) ||
+        (w.zone && w.zone.toLowerCase().includes(q)) ||
+        (w.oilStation && w.oilStation.toLowerCase().includes(q)) ||
+        (w.plinth && w.plinth.toLowerCase().includes(q)) ||
+        (w.assetCategory && w.assetCategory.toLowerCase().includes(q)) ||
+        (w.assetType && w.assetType.toLowerCase().includes(q)) ||
         w.padName.toLowerCase().includes(q) ||
         w.basin.toLowerCase().includes(q) ||
         w.field.toLowerCase().includes(q) ||
@@ -88,8 +97,10 @@ export const AssetManagementView: React.FC = () => {
       const matchesLift = liftFilter === 'All' || w.liftType === liftFilter;
       const matchesStatus = statusFilter === 'All' || w.status === statusFilter;
       const matchesBasin = basinFilter === 'All' || w.basin.includes(basinFilter);
+      const matchesZone = zoneFilter === 'All' || (w.zone && w.zone.toLowerCase().includes(zoneFilter.toLowerCase()));
+      const matchesStation = stationFilter === 'All' || (w.oilStation && w.oilStation.toLowerCase().includes(stationFilter.toLowerCase()));
 
-      return matchesSearch && matchesLift && matchesStatus && matchesBasin;
+      return matchesSearch && matchesLift && matchesStatus && matchesBasin && matchesZone && matchesStation;
     }).sort((a, b) => {
       let aVal = a[sortField];
       let bVal = b[sortField];
@@ -103,7 +114,7 @@ export const AssetManagementView: React.FC = () => {
       if (aVal > bVal) return sortDirection === 'asc' ? 1 : -1;
       return 0;
     });
-  }, [wells, searchTerm, liftFilter, statusFilter, basinFilter, sortField, sortDirection]);
+  }, [wells, searchTerm, liftFilter, statusFilter, basinFilter, zoneFilter, stationFilter, sortField, sortDirection]);
 
   // Paginated records
   const totalPages = Math.ceil(filteredWells.length / rowsPerPage) || 1;
@@ -266,12 +277,20 @@ export const AssetManagementView: React.FC = () => {
   // CSV Export
   const handleExportCSV = () => {
     const headers = [
-      'ID',
-      'Name',
+      'Asset Short Name',
+      'Asset Long Name',
+      'Asset Start Date',
+      'Zone',
+      'Oil Station',
+      'Plinth',
+      'Artificial Lift Type',
+      'Asset Category',
+      'Asset Type',
+      'Asset Monitoring',
+      'Well ID',
       'Pad Name',
       'Basin',
       'Field Formation',
-      'Lift Type',
       'Status',
       'Total Depth (ft)',
       'Target BOPD',
@@ -287,12 +306,20 @@ export const AssetManagementView: React.FC = () => {
     ];
 
     const rows = filteredWells.map(w => [
-      w.id,
+      `"${w.wellCode || w.id}"`,
       `"${w.name}"`,
+      `"${w.spudDate || '2024-03-15'}"`,
+      `"${w.zone || 'Western Zone'}"`,
+      `"${w.oilStation || 'STN-01'}"`,
+      `"${w.plinth || 'PLN-001'}"`,
+      `"${w.liftType}"`,
+      `"${w.assetCategory || 'Well'}"`,
+      `"${w.assetType || 'ESP Production'}"`,
+      '"Yes"',
+      w.id,
       `"${w.padName}"`,
       `"${w.basin}"`,
       `"${w.field}"`,
-      w.liftType,
       w.status,
       w.totalDepthFt,
       w.targetBopd,
@@ -518,8 +545,56 @@ export const AssetManagementView: React.FC = () => {
           />
         </div>
 
-        {/* Filters */}
+        {/* View Mode Switcher & Filters */}
         <div className="flex items-center gap-2 flex-wrap text-xs">
+          {/* Table Mode Toggle */}
+          <div className="flex items-center bg-slate-950 p-0.5 rounded-lg border border-slate-700">
+            <button
+              onClick={() => setTableMode('hierarchy')}
+              className={`px-3 py-1 rounded text-xs font-mono font-medium transition-colors ${
+                tableMode === 'hierarchy' ? 'bg-cyan-600 text-white font-bold shadow-sm' : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              Hierarchy (Slide 24)
+            </button>
+            <button
+              onClick={() => setTableMode('operations')}
+              className={`px-3 py-1 rounded text-xs font-mono font-medium transition-colors ${
+                tableMode === 'operations' ? 'bg-cyan-600 text-white font-bold shadow-sm' : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              Operations & Rates
+            </button>
+          </div>
+
+          <select
+            value={zoneFilter}
+            onChange={(e) => {
+              setZoneFilter(e.target.value);
+              setCurrentPage(1);
+            }}
+            className="bg-slate-950 border border-slate-700 text-slate-300 rounded px-2.5 py-1.5"
+          >
+            <option value="All">All Zones</option>
+            <option value="Western">Western Zone</option>
+            <option value="Northern">Northern Zone</option>
+            <option value="Central">Central Basin</option>
+          </select>
+
+          <select
+            value={stationFilter}
+            onChange={(e) => {
+              setStationFilter(e.target.value);
+              setCurrentPage(1);
+            }}
+            className="bg-slate-950 border border-slate-700 text-slate-300 rounded px-2.5 py-1.5"
+          >
+            <option value="All">All Stations</option>
+            <option value="STN-01">Station 01 (STN-01)</option>
+            <option value="STN-02">Station 02 (STN-02)</option>
+            <option value="STN-24">Station 24 (STN-24)</option>
+          </select>
+
           <select
             value={liftFilter}
             onChange={(e) => {
@@ -566,13 +641,15 @@ export const AssetManagementView: React.FC = () => {
             <option value="Bakken">Bakken</option>
           </select>
 
-          {(searchTerm || liftFilter !== 'All' || statusFilter !== 'All' || basinFilter !== 'All') && (
+          {(searchTerm || liftFilter !== 'All' || statusFilter !== 'All' || basinFilter !== 'All' || zoneFilter !== 'All' || stationFilter !== 'All') && (
             <button
               onClick={() => {
                 setSearchTerm('');
                 setLiftFilter('All');
                 setStatusFilter('All');
                 setBasinFilter('All');
+                setZoneFilter('All');
+                setStationFilter('All');
                 setCurrentPage(1);
               }}
               className="text-xs text-cyan-400 hover:underline px-2 py-1 font-mono"
@@ -586,167 +663,311 @@ export const AssetManagementView: React.FC = () => {
       {/* Main Table */}
       <div className="bg-slate-900/90 border border-slate-800 rounded-xl overflow-hidden shadow-lg">
         <div className="overflow-x-auto">
-          <table className="w-full text-xs text-left">
-            <thead className="bg-slate-950 text-slate-400 font-mono text-[11px] uppercase border-b border-slate-800 select-none">
-              <tr>
-                <th 
-                  onClick={() => handleSort('id')} 
-                  className="px-4 py-3 cursor-pointer hover:text-white"
-                >
-                  <div className="flex items-center gap-1.5">
-                    <span>Well ID & Pad</span>
-                    {sortField === 'id' ? (sortDirection === 'asc' ? <ArrowUp className="w-3 h-3 text-cyan-400" /> : <ArrowDown className="w-3 h-3 text-cyan-400" />) : <ArrowUpDown className="w-3 h-3 opacity-40" />}
-                  </div>
-                </th>
-                <th 
-                  onClick={() => handleSort('name')} 
-                  className="px-4 py-3 cursor-pointer hover:text-white"
-                >
-                  <div className="flex items-center gap-1.5">
-                    <span>Well Name</span>
-                    {sortField === 'name' ? (sortDirection === 'asc' ? <ArrowUp className="w-3 h-3 text-cyan-400" /> : <ArrowDown className="w-3 h-3 text-cyan-400" />) : <ArrowUpDown className="w-3 h-3 opacity-40" />}
-                  </div>
-                </th>
-                <th 
-                  onClick={() => handleSort('basin')} 
-                  className="px-4 py-3 cursor-pointer hover:text-white"
-                >
-                  <div className="flex items-center gap-1.5">
-                    <span>Basin / Field</span>
-                    {sortField === 'basin' ? (sortDirection === 'asc' ? <ArrowUp className="w-3 h-3 text-cyan-400" /> : <ArrowDown className="w-3 h-3 text-cyan-400" />) : <ArrowUpDown className="w-3 h-3 opacity-40" />}
-                  </div>
-                </th>
-                <th 
-                  onClick={() => handleSort('liftType')} 
-                  className="px-4 py-3 cursor-pointer hover:text-white"
-                >
-                  <div className="flex items-center gap-1.5">
-                    <span>Lift System</span>
-                    {sortField === 'liftType' ? (sortDirection === 'asc' ? <ArrowUp className="w-3 h-3 text-cyan-400" /> : <ArrowDown className="w-3 h-3 text-cyan-400" />) : <ArrowUpDown className="w-3 h-3 opacity-40" />}
-                  </div>
-                </th>
-                <th 
-                  onClick={() => handleSort('currentBopd')} 
-                  className="px-4 py-3 text-right cursor-pointer hover:text-white"
-                >
-                  <div className="flex items-center justify-end gap-1.5">
-                    <span>Oil Rate (BOPD)</span>
-                    {sortField === 'currentBopd' ? (sortDirection === 'asc' ? <ArrowUp className="w-3 h-3 text-cyan-400" /> : <ArrowDown className="w-3 h-3 text-cyan-400" />) : <ArrowUpDown className="w-3 h-3 opacity-40" />}
-                  </div>
-                </th>
-                <th 
-                  onClick={() => handleSort('intakePressurePsi')} 
-                  className="px-4 py-3 text-right cursor-pointer hover:text-white"
-                >
-                  <div className="flex items-center justify-end gap-1.5">
-                    <span>Intake Press</span>
-                    {sortField === 'intakePressurePsi' ? (sortDirection === 'asc' ? <ArrowUp className="w-3 h-3 text-cyan-400" /> : <ArrowDown className="w-3 h-3 text-cyan-400" />) : <ArrowUpDown className="w-3 h-3 opacity-40" />}
-                  </div>
-                </th>
-                <th 
-                  onClick={() => handleSort('runLifeDays')} 
-                  className="px-4 py-3 text-right cursor-pointer hover:text-white"
-                >
-                  <div className="flex items-center justify-end gap-1.5">
-                    <span>Run Life</span>
-                    {sortField === 'runLifeDays' ? (sortDirection === 'asc' ? <ArrowUp className="w-3 h-3 text-cyan-400" /> : <ArrowDown className="w-3 h-3 text-cyan-400" />) : <ArrowUpDown className="w-3 h-3 opacity-40" />}
-                  </div>
-                </th>
-                <th 
-                  onClick={() => handleSort('status')} 
-                  className="px-4 py-3 text-center cursor-pointer hover:text-white"
-                >
-                  <div className="flex items-center justify-center gap-1.5">
-                    <span>Status</span>
-                    {sortField === 'status' ? (sortDirection === 'asc' ? <ArrowUp className="w-3 h-3 text-cyan-400" /> : <ArrowDown className="w-3 h-3 text-cyan-400" />) : <ArrowUpDown className="w-3 h-3 opacity-40" />}
-                  </div>
-                </th>
-                <th className="px-4 py-3 text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-800 text-slate-200 font-mono">
-              {paginatedWells.length > 0 ? (
-                paginatedWells.map(well => (
-                  <tr key={well.id} className="hover:bg-slate-800/40 transition-colors">
-                    <td className="px-4 py-3">
-                      <div className="text-cyan-400 font-bold">{well.id}</div>
-                      <div className="text-[10px] text-slate-400 font-sans">{well.padName}</div>
-                    </td>
-                    <td className="px-4 py-3 font-sans">
-                      <div className="font-semibold text-white">{well.name}</div>
-                      <div className="text-[10px] text-slate-500 font-mono">
-                        Updated {well.updatedAt ? new Date(well.updatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Recent'}
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 font-sans text-slate-300">
-                      <div>{well.basin}</div>
-                      <div className="text-[10px] text-slate-500">{well.field}</div>
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className="px-2 py-0.5 rounded text-[10px] bg-slate-800 text-cyan-300 border border-slate-700 font-mono">
-                        {well.liftType}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-right tabular-nums">
-                      <span className="text-emerald-400 font-bold">{well.currentBopd.toLocaleString()}</span>
-                      <span className="text-slate-500 text-[10px] block">/ {well.targetBopd} tgt</span>
-                    </td>
-                    <td className="px-4 py-3 text-right tabular-nums text-slate-300">
-                      {well.intakePressurePsi} psi
-                    </td>
-                    <td className="px-4 py-3 text-right tabular-nums text-slate-300">
-                      {well.runLifeDays} d
-                    </td>
-                    <td className="px-4 py-3 text-center">
-                      <span className={`inline-block px-2.5 py-0.5 rounded text-[10px] font-sans font-medium ${
-                        well.status === 'Nominal' ? 'bg-emerald-950/80 text-emerald-300 border border-emerald-800' :
-                        well.status === 'Warning' ? 'bg-amber-950/80 text-amber-300 border border-amber-800' :
-                        well.status === 'Critical' ? 'bg-rose-950/80 text-rose-300 border border-rose-800' :
-                        well.status === 'Testing' ? 'bg-blue-950/80 text-blue-300 border border-blue-800' :
-                        'bg-slate-800 text-slate-400 border border-slate-700'
-                      }`}>
-                        {well.status}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      <div className="flex items-center justify-end gap-1 font-sans">
-                        <button
-                          onClick={() => setSelectedWell(well)}
-                          title="View Details"
-                          className="p-1 rounded text-slate-400 hover:text-cyan-400 hover:bg-slate-800"
-                        >
-                          <Eye className="w-3.5 h-3.5" />
-                        </button>
-                        <button
-                          onClick={() => {
-                            setFormErrors({});
-                            setEditingWell(well);
-                          }}
-                          title="Edit Well"
-                          className="p-1 rounded text-slate-400 hover:text-white hover:bg-slate-800"
-                        >
-                          <Edit className="w-3.5 h-3.5" />
-                        </button>
-                        <button
-                          onClick={() => setDeletingWell(well)}
-                          title="Delete Well"
-                          className="p-1 rounded text-slate-400 hover:text-rose-400 hover:bg-slate-800"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
+          {tableMode === 'hierarchy' ? (
+            /* SLIDE 24 HIERARCHY & INFRASTRUCTURE REGISTRY TABLE */
+            <table className="w-full text-xs text-left">
+              <thead className="bg-slate-950 text-slate-400 font-mono text-[11px] uppercase border-b border-slate-800 select-none">
+                <tr>
+                  <th onClick={() => handleSort('spudDate' as any)} className="px-3 py-3 cursor-pointer hover:text-white">
+                    <div className="flex items-center gap-1">
+                      <span>Asset Start Date</span>
+                      {sortField === 'spudDate' as any && (sortDirection === 'asc' ? <ArrowUp className="w-3 h-3 text-cyan-400" /> : <ArrowDown className="w-3 h-3 text-cyan-400" />)}
+                    </div>
+                  </th>
+                  <th onClick={() => handleSort('zone' as any)} className="px-3 py-3 cursor-pointer hover:text-white">
+                    <div className="flex items-center gap-1">
+                      <span>Zone</span>
+                      {sortField === 'zone' as any && (sortDirection === 'asc' ? <ArrowUp className="w-3 h-3 text-cyan-400" /> : <ArrowDown className="w-3 h-3 text-cyan-400" />)}
+                    </div>
+                  </th>
+                  <th onClick={() => handleSort('oilStation' as any)} className="px-3 py-3 cursor-pointer hover:text-white">
+                    <div className="flex items-center gap-1">
+                      <span>Oil Station</span>
+                      {sortField === 'oilStation' as any && (sortDirection === 'asc' ? <ArrowUp className="w-3 h-3 text-cyan-400" /> : <ArrowDown className="w-3 h-3 text-cyan-400" />)}
+                    </div>
+                  </th>
+                  <th onClick={() => handleSort('plinth' as any)} className="px-3 py-3 cursor-pointer hover:text-white">
+                    <div className="flex items-center gap-1">
+                      <span>Plinth</span>
+                      {sortField === 'plinth' as any && (sortDirection === 'asc' ? <ArrowUp className="w-3 h-3 text-cyan-400" /> : <ArrowDown className="w-3 h-3 text-cyan-400" />)}
+                    </div>
+                  </th>
+                  <th onClick={() => handleSort('liftType')} className="px-3 py-3 cursor-pointer hover:text-white">
+                    <div className="flex items-center gap-1">
+                      <span>Artificial Lift</span>
+                      {sortField === 'liftType' && (sortDirection === 'asc' ? <ArrowUp className="w-3 h-3 text-cyan-400" /> : <ArrowDown className="w-3 h-3 text-cyan-400" />)}
+                    </div>
+                  </th>
+                  <th onClick={() => handleSort('assetCategory' as any)} className="px-3 py-3 cursor-pointer hover:text-white">
+                    <div className="flex items-center gap-1">
+                      <span>Asset Category</span>
+                      {sortField === 'assetCategory' as any && (sortDirection === 'asc' ? <ArrowUp className="w-3 h-3 text-cyan-400" /> : <ArrowDown className="w-3 h-3 text-cyan-400" />)}
+                    </div>
+                  </th>
+                  <th onClick={() => handleSort('assetType' as any)} className="px-3 py-3 cursor-pointer hover:text-white">
+                    <div className="flex items-center gap-1">
+                      <span>Asset Type</span>
+                      {sortField === 'assetType' as any && (sortDirection === 'asc' ? <ArrowUp className="w-3 h-3 text-cyan-400" /> : <ArrowDown className="w-3 h-3 text-cyan-400" />)}
+                    </div>
+                  </th>
+                  <th onClick={() => handleSort('wellCode' as any)} className="px-3 py-3 cursor-pointer hover:text-white">
+                    <div className="flex items-center gap-1">
+                      <span>Asset Short Name</span>
+                      {sortField === 'wellCode' as any && (sortDirection === 'asc' ? <ArrowUp className="w-3 h-3 text-cyan-400" /> : <ArrowDown className="w-3 h-3 text-cyan-400" />)}
+                    </div>
+                  </th>
+                  <th onClick={() => handleSort('name')} className="px-3 py-3 cursor-pointer hover:text-white">
+                    <div className="flex items-center gap-1">
+                      <span>Asset Long Name</span>
+                      {sortField === 'name' && (sortDirection === 'asc' ? <ArrowUp className="w-3 h-3 text-cyan-400" /> : <ArrowDown className="w-3 h-3 text-cyan-400" />)}
+                    </div>
+                  </th>
+                  <th className="px-3 py-3 text-center">Asset Monitoring</th>
+                  <th className="px-3 py-3 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-800 text-slate-200 font-mono">
+                {paginatedWells.length > 0 ? (
+                  paginatedWells.map(well => (
+                    <tr key={well.id} className="hover:bg-slate-800/40 transition-colors">
+                      <td className="px-3 py-2.5 text-slate-300 font-mono text-[11px] whitespace-nowrap">
+                        {well.spudDate || '2024-03-15'}
+                      </td>
+                      <td className="px-3 py-2.5 font-sans text-slate-200 font-medium">
+                        {well.zone || 'Western'}
+                      </td>
+                      <td className="px-3 py-2.5 font-mono text-cyan-300 font-bold">
+                        {well.oilStation || 'STN-01'}
+                      </td>
+                      <td className="px-3 py-2.5 font-mono text-slate-300">
+                        {well.plinth || 'PLN-001'}
+                      </td>
+                      <td className="px-3 py-2.5">
+                        <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-cyan-950 text-cyan-300 border border-cyan-800">
+                          {well.liftType}
+                        </span>
+                      </td>
+                      <td className="px-3 py-2.5 font-sans text-slate-300">
+                        {well.assetCategory || 'Well'}
+                      </td>
+                      <td className="px-3 py-2.5 font-sans text-slate-400 text-[11px]">
+                        {well.assetType || 'ESP Production'}
+                      </td>
+                      <td className="px-3 py-2.5 font-mono font-bold text-cyan-400">
+                        {well.wellCode || well.id}
+                      </td>
+                      <td className="px-3 py-2.5 font-sans text-white font-medium">
+                        {well.name}
+                      </td>
+                      <td className="px-3 py-2.5 text-center">
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-sans font-semibold bg-emerald-950/80 text-emerald-300 border border-emerald-800">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                          Yes (Monitored)
+                        </span>
+                      </td>
+                      <td className="px-3 py-2.5 text-right font-sans">
+                        <div className="flex items-center justify-end gap-1">
+                          <button
+                            onClick={() => setSelectedWell(well)}
+                            title="View Details"
+                            className="p-1 rounded text-slate-400 hover:text-cyan-400 hover:bg-slate-800"
+                          >
+                            <Eye className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            onClick={() => {
+                              setFormErrors({});
+                              setEditingWell(well);
+                            }}
+                            title="Edit Well"
+                            className="p-1 rounded text-slate-400 hover:text-white hover:bg-slate-800"
+                          >
+                            <Edit className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            onClick={() => setDeletingWell(well)}
+                            title="Delete Well"
+                            className="p-1 rounded text-slate-400 hover:text-rose-400 hover:bg-slate-800"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan={11} className="text-center py-8 text-slate-500 font-sans">
+                      No matching well assets found in hierarchy registry. Try adjusting filters.
                     </td>
                   </tr>
-                ))
-              ) : (
+                )}
+              </tbody>
+            </table>
+          ) : (
+            /* OPERATIONS & PRODUCTION REGISTRY TABLE */
+            <table className="w-full text-xs text-left">
+              <thead className="bg-slate-950 text-slate-400 font-mono text-[11px] uppercase border-b border-slate-800 select-none">
                 <tr>
-                  <td colSpan={9} className="text-center py-8 text-slate-500 font-sans">
-                    No matching well assets found. Try adjusting search filters or import a dataset.
-                  </td>
+                  <th 
+                    onClick={() => handleSort('id')} 
+                    className="px-4 py-3 cursor-pointer hover:text-white"
+                  >
+                    <div className="flex items-center gap-1.5">
+                      <span>Well ID & Pad</span>
+                      {sortField === 'id' ? (sortDirection === 'asc' ? <ArrowUp className="w-3 h-3 text-cyan-400" /> : <ArrowDown className="w-3 h-3 text-cyan-400" />) : <ArrowUpDown className="w-3 h-3 opacity-40" />}
+                    </div>
+                  </th>
+                  <th 
+                    onClick={() => handleSort('name')} 
+                    className="px-4 py-3 cursor-pointer hover:text-white"
+                  >
+                    <div className="flex items-center gap-1.5">
+                      <span>Well Name</span>
+                      {sortField === 'name' ? (sortDirection === 'asc' ? <ArrowUp className="w-3 h-3 text-cyan-400" /> : <ArrowDown className="w-3 h-3 text-cyan-400" />) : <ArrowUpDown className="w-3 h-3 opacity-40" />}
+                    </div>
+                  </th>
+                  <th 
+                    onClick={() => handleSort('basin')} 
+                    className="px-4 py-3 cursor-pointer hover:text-white"
+                  >
+                    <div className="flex items-center gap-1.5">
+                      <span>Basin / Field</span>
+                      {sortField === 'basin' ? (sortDirection === 'asc' ? <ArrowUp className="w-3 h-3 text-cyan-400" /> : <ArrowDown className="w-3 h-3 text-cyan-400" />) : <ArrowUpDown className="w-3 h-3 opacity-40" />}
+                    </div>
+                  </th>
+                  <th 
+                    onClick={() => handleSort('liftType')} 
+                    className="px-4 py-3 cursor-pointer hover:text-white"
+                  >
+                    <div className="flex items-center gap-1.5">
+                      <span>Lift System</span>
+                      {sortField === 'liftType' ? (sortDirection === 'asc' ? <ArrowUp className="w-3 h-3 text-cyan-400" /> : <ArrowDown className="w-3 h-3 text-cyan-400" />) : <ArrowUpDown className="w-3 h-3 opacity-40" />}
+                    </div>
+                  </th>
+                  <th 
+                    onClick={() => handleSort('currentBopd')} 
+                    className="px-4 py-3 text-right cursor-pointer hover:text-white"
+                  >
+                    <div className="flex items-center justify-end gap-1.5">
+                      <span>Oil Rate (BOPD)</span>
+                      {sortField === 'currentBopd' ? (sortDirection === 'asc' ? <ArrowUp className="w-3 h-3 text-cyan-400" /> : <ArrowDown className="w-3 h-3 text-cyan-400" />) : <ArrowUpDown className="w-3 h-3 opacity-40" />}
+                    </div>
+                  </th>
+                  <th 
+                    onClick={() => handleSort('intakePressurePsi')} 
+                    className="px-4 py-3 text-right cursor-pointer hover:text-white"
+                  >
+                    <div className="flex items-center justify-end gap-1.5">
+                      <span>Intake Press</span>
+                      {sortField === 'intakePressurePsi' ? (sortDirection === 'asc' ? <ArrowUp className="w-3 h-3 text-cyan-400" /> : <ArrowDown className="w-3 h-3 text-cyan-400" />) : <ArrowUpDown className="w-3 h-3 opacity-40" />}
+                    </div>
+                  </th>
+                  <th 
+                    onClick={() => handleSort('runLifeDays')} 
+                    className="px-4 py-3 text-right cursor-pointer hover:text-white"
+                  >
+                    <div className="flex items-center justify-end gap-1.5">
+                      <span>Run Life</span>
+                      {sortField === 'runLifeDays' ? (sortDirection === 'asc' ? <ArrowUp className="w-3 h-3 text-cyan-400" /> : <ArrowDown className="w-3 h-3 text-cyan-400" />) : <ArrowUpDown className="w-3 h-3 opacity-40" />}
+                    </div>
+                  </th>
+                  <th 
+                    onClick={() => handleSort('status')} 
+                    className="px-4 py-3 text-center cursor-pointer hover:text-white"
+                  >
+                    <div className="flex items-center justify-center gap-1.5">
+                      <span>Status</span>
+                      {sortField === 'status' ? (sortDirection === 'asc' ? <ArrowUp className="w-3 h-3 text-cyan-400" /> : <ArrowDown className="w-3 h-3 text-cyan-400" />) : <ArrowUpDown className="w-3 h-3 opacity-40" />}
+                    </div>
+                  </th>
+                  <th className="px-4 py-3 text-right">Actions</th>
                 </tr>
-              )}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-slate-800 text-slate-200 font-mono">
+                {paginatedWells.length > 0 ? (
+                  paginatedWells.map(well => (
+                    <tr key={well.id} className="hover:bg-slate-800/40 transition-colors">
+                      <td className="px-4 py-3">
+                        <div className="text-cyan-400 font-bold">{well.id}</div>
+                        <div className="text-[10px] text-slate-400 font-sans">{well.padName}</div>
+                      </td>
+                      <td className="px-4 py-3 font-sans">
+                        <div className="font-semibold text-white">{well.name}</div>
+                        <div className="text-[10px] text-slate-500 font-mono">
+                          Updated {well.updatedAt ? new Date(well.updatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Recent'}
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 font-sans text-slate-300">
+                        <div>{well.basin}</div>
+                        <div className="text-[10px] text-slate-500">{well.field}</div>
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className="px-2 py-0.5 rounded text-[10px] bg-slate-800 text-cyan-300 border border-slate-700 font-mono">
+                          {well.liftType}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-right tabular-nums">
+                        <span className="text-emerald-400 font-bold">{well.currentBopd.toLocaleString()}</span>
+                        <span className="text-slate-500 text-[10px] block">/ {well.targetBopd} tgt</span>
+                      </td>
+                      <td className="px-4 py-3 text-right tabular-nums text-slate-300">
+                        {well.intakePressurePsi} psi
+                      </td>
+                      <td className="px-4 py-3 text-right tabular-nums text-slate-300">
+                        {well.runLifeDays} d
+                      </td>
+                      <td className="px-4 py-3 text-center">
+                        <span className={`inline-block px-2.5 py-0.5 rounded text-[10px] font-sans font-medium ${
+                          well.status === 'Nominal' ? 'bg-emerald-950/80 text-emerald-300 border border-emerald-800' :
+                          well.status === 'Warning' ? 'bg-amber-950/80 text-amber-300 border border-amber-800' :
+                          well.status === 'Critical' ? 'bg-rose-950/80 text-rose-300 border border-rose-800' :
+                          well.status === 'Testing' ? 'bg-blue-950/80 text-blue-300 border border-blue-800' :
+                          'bg-slate-800 text-slate-400 border border-slate-700'
+                        }`}>
+                          {well.status}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        <div className="flex items-center justify-end gap-1 font-sans">
+                          <button
+                            onClick={() => setSelectedWell(well)}
+                            title="View Details"
+                            className="p-1 rounded text-slate-400 hover:text-cyan-400 hover:bg-slate-800"
+                          >
+                            <Eye className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            onClick={() => {
+                              setFormErrors({});
+                              setEditingWell(well);
+                            }}
+                            title="Edit Well"
+                            className="p-1 rounded text-slate-400 hover:text-white hover:bg-slate-800"
+                          >
+                            <Edit className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            onClick={() => setDeletingWell(well)}
+                            title="Delete Well"
+                            className="p-1 rounded text-slate-400 hover:text-rose-400 hover:bg-slate-800"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan={9} className="text-center py-8 text-slate-500 font-sans">
+                      No matching well assets found. Try adjusting search filters or import a dataset.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          )}
         </div>
 
         {/* Pagination Bar */}

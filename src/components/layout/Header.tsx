@@ -168,17 +168,19 @@ export const Header: React.FC<HeaderProps> = ({
 
           {/* Portal Switcher Buttons */}
           <div className="flex items-center p-1 bg-slate-950 border border-slate-800 rounded-lg">
-            <button
-              onClick={() => onSelectPortal('admin')}
-              className={`px-3 py-1 text-xs font-semibold rounded transition-all flex items-center gap-1.5 ${
-                currentPortal === 'admin'
-                  ? 'bg-gradient-to-r from-blue-700 to-indigo-700 text-white shadow-sm'
-                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900'
-              }`}
-            >
-              <ShieldCheck className="w-3.5 h-3.5" />
-              <span>Admin Portal</span>
-            </button>
+            {currentUser.allowedPortals?.includes('admin') && (
+              <button
+                onClick={() => onSelectPortal('admin')}
+                className={`px-3 py-1 text-xs font-semibold rounded transition-all flex items-center gap-1.5 ${
+                  currentPortal === 'admin'
+                    ? 'bg-gradient-to-r from-blue-700 to-indigo-700 text-white shadow-sm'
+                    : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900'
+                }`}
+              >
+                <ShieldCheck className="w-3.5 h-3.5" />
+                <span>Admin Portal</span>
+              </button>
+            )}
             <button
               onClick={() => onSelectPortal('user')}
               className={`px-3 py-1 text-xs font-semibold rounded transition-all flex items-center gap-1.5 ${

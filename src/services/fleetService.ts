@@ -635,14 +635,14 @@ export const INITIAL_MAINTENANCE_PLANS: VehicleMaintenancePlan[] = [
   { id: 'MAINT-406', vehicleId: 'VEH-112', vehicleCode: 'RIG-05', serviceType: 'Tire Rotation & Alignment', priority: 'Routine', dueDate: '2026-10-31', dueMiles: 146000, estimatedCostUsd: 1200, status: 'Scheduled', serviceVendor: 'Commercial Tire Pros', notes: 'Drive steer alignment and casing retread check.' },
 ];
 
-// Fuel & Fleet Transactions
+// Fuel & Fleet Transactions (Slide 36 & 37)
 export const INITIAL_FLEET_TRANSACTIONS: FleetTransaction[] = [
-  { id: 'TXN-801', vehicleId: 'VEH-101', vehicleCode: 'CRN-01', driverName: 'Hector Ramirez', type: 'Fuel Card', timestamp: '2026-10-28 06:50 UTC', location: 'Pecos Travel Center Pump 8', gallons: 85.4, pricePerGal: 3.79, amountUsd: 323.67, receiptRef: 'REC-PEC-9921' },
-  { id: 'TXN-802', vehicleId: 'VEH-104', vehicleCode: 'SL-04', driverName: 'Jesse Vance', type: 'Fuel Card', timestamp: '2026-10-28 06:40 UTC', location: 'Midland Fleet Depot Cardlock', gallons: 62.0, pricePerGal: 3.75, amountUsd: 232.50, receiptRef: 'REC-MID-1142' },
-  { id: 'TXN-803', vehicleId: 'VEH-106', vehicleCode: 'CREW-11', driverName: 'Cole Hawkins', type: 'Fuel Card', timestamp: '2026-10-28 07:15 UTC', location: 'Kermit Strip Cardlock', gallons: 28.5, pricePerGal: 3.82, amountUsd: 108.87, receiptRef: 'REC-KER-4401' },
-  { id: 'TXN-804', vehicleId: 'VEH-107', vehicleCode: 'OIL-03', driverName: 'Wyatt Sterling', type: 'Preventative Service', timestamp: '2026-10-27 15:30 UTC', location: 'Pecos Commercial Truck', amountUsd: 2850.00, receiptRef: 'INV-PC-7712' },
-  { id: 'TXN-805', vehicleId: 'VEH-102', vehicleCode: 'WIRE-02', driverName: 'Travis McCord', type: 'DEF Fluid', timestamp: '2026-10-27 11:20 UTC', location: 'Orla Bulk Station', gallons: 10.0, pricePerGal: 4.10, amountUsd: 41.00, receiptRef: 'REC-ORL-2201' },
-  { id: 'TXN-806', vehicleId: 'VEH-108', vehicleCode: 'PUMP-07', driverName: 'Garrett Holt', type: 'Toll / Permit', timestamp: '2026-10-26 14:00 UTC', location: 'Texas DOT Overweight Permit', amountUsd: 215.00, receiptRef: 'PERM-TX-8812' },
+  { id: 'TXN-801', vehicleId: 'VEH-101', vehicleCode: 'CRN-01', driverName: 'Hector Ramirez', type: 'Fuel Card', timestamp: '2026-10-28 06:50 UTC', location: 'Pecos Travel Center Pump 8', gallons: 10.6, liters: 40.0, odometer: 68420, economyKmL: 8.4, anomaly: 'Normal', pricePerGal: 3.79, amountUsd: 151.60, receiptRef: 'REC-PEC-9921' },
+  { id: 'TXN-802', vehicleId: 'VEH-104', vehicleCode: 'SL-04', driverName: 'Jesse Vance', type: 'Fuel Card', timestamp: '2026-10-28 06:40 UTC', location: 'Midland Fleet Depot Cardlock', gallons: 11.1, liters: 42.0, odometer: 84320, economyKmL: 8.6, anomaly: 'Normal', pricePerGal: 3.75, amountUsd: 157.50, receiptRef: 'REC-MID-1142' },
+  { id: 'TXN-803', vehicleId: 'VEH-106', vehicleCode: 'CREW-11', driverName: 'Cole Hawkins', type: 'Fuel Card', timestamp: '2026-10-28 07:15 UTC', location: 'Kermit Strip Cardlock', gallons: 9.8, liters: 37.0, odometer: 32100, economyKmL: 9.2, anomaly: 'Normal', pricePerGal: 3.82, amountUsd: 141.34, receiptRef: 'REC-KER-4401' },
+  { id: 'TXN-804', vehicleId: 'VEH-108', vehicleCode: 'TKR-05', driverName: 'Garrett Holt', type: 'Fuel Card', timestamp: '2026-10-28 03:14 UTC', location: 'Loving County Highway 302', gallons: 13.2, liters: 50.0, odometer: 74210, economyKmL: 4.8, anomaly: 'Rapid Tank Drop (-22%)', pricePerGal: 3.78, amountUsd: 189.00, receiptRef: 'REC-LOV-8821' },
+  { id: 'TXN-805', vehicleId: 'VEH-102', vehicleCode: 'CRN-02', driverName: 'Travis McCord', type: 'Fuel Card', timestamp: '2026-10-28 05:22 UTC', location: 'Orla Bulk Station Pump 3', gallons: 12.7, liters: 48.0, odometer: 92450, economyKmL: 5.1, anomaly: 'High Consumption (Grade Climb)', pricePerGal: 3.77, amountUsd: 180.96, receiptRef: 'REC-ORL-2201' },
+  { id: 'TXN-806', vehicleId: 'VEH-107', vehicleCode: 'OIL-03', driverName: 'Wyatt Sterling', type: 'Preventative Service', timestamp: '2026-10-27 15:30 UTC', location: 'Pecos Commercial Truck', amountUsd: 2850.00, receiptRef: 'INV-PC-7712' },
   { id: 'TXN-807', vehicleId: 'VEH-111', vehicleCode: 'CREW-14', driverName: 'Logan Pierce', type: 'Tire Replacement', timestamp: '2026-10-25 09:10 UTC', location: 'Commercial Tire Pros Pecos', amountUsd: 420.00, receiptRef: 'INV-CT-1092' },
 ];
 

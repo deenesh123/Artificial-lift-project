@@ -82,6 +82,7 @@ export const ReportsAnalyticsView: React.FC = () => {
 
   // Active Tab
   type AnalyticsTab = 
+    | 'report-center'
     | 'overview' 
     | 'pressure-temp' 
     | 'flow-prod' 
@@ -91,7 +92,32 @@ export const ReportsAnalyticsView: React.FC = () => {
     | 'fleet-logistics' 
     | 'raw-telemetry';
 
-  const [activeTab, setActiveTab] = useState<AnalyticsTab>('overview');
+  const [activeTab, setActiveTab] = useState<AnalyticsTab>('report-center');
+
+  // Slide 5 Report Center state
+  interface GeneratedReport {
+    id: string;
+    name: string;
+    template: string;
+    dateRange: string;
+    generatedAt: string;
+    generatedBy: string;
+    fileSize: string;
+    status: 'Completed' | 'In Progress' | 'Failed';
+  }
+
+  const [reports, setReports] = useState<GeneratedReport[]>([
+    { id: 'RPT-2026-104', name: 'Monthly Field Production Audit', template: 'Production Summary', dateRange: '2026/Oct/01 - 2026/Oct/31', generatedAt: '2026-10-28 07:15 UTC', generatedBy: 'Carlos Reyes, PE', fileSize: '2.4 MB', status: 'Completed' },
+    { id: 'RPT-2026-103', name: 'ESP Hydraulic Stress & P&T Profiler', template: 'Pressure & Temperature Report', dateRange: '2026/Oct/01 - 2026/Oct/31', generatedAt: '2026-10-28 06:40 UTC', generatedBy: 'Sarah Jenkins', fileSize: '4.1 MB', status: 'Completed' },
+    { id: 'RPT-2026-102', name: 'Q4 Vogel Inflow Drawdown Analysis', template: 'Well Performance Report', dateRange: '2026/Oct/01 - 2026/Oct/31', generatedAt: '2026-10-28 05:20 UTC', generatedBy: 'David Chen', fileSize: '1.8 MB', status: 'Completed' },
+    { id: 'RPT-2026-101', name: 'Delaware Basin 20-Well Health Matrix', template: 'Equipment Health Report', dateRange: '2026/Oct/01 - 2026/Oct/31', generatedAt: '2026-10-28 04:10 UTC', generatedBy: 'Automated Scheduler', fileSize: '3.6 MB', status: 'Completed' },
+    { id: 'RPT-2026-100', name: 'Real-Time Telemetry Multi-Register Dump', template: 'Custom Telemetry Report', dateRange: '2026/Oct/27 - 2026/Oct/28', generatedAt: '2026-10-28 07:45 UTC', generatedBy: 'Elena Rostova', fileSize: '840 KB', status: 'In Progress' },
+    { id: 'RPT-2026-099', name: 'Northern Zone Remote Gateway Diagnostics', template: 'Pressure & Temperature Report', dateRange: '2026/Oct/15 - 2026/Oct/20', generatedAt: '2026-10-27 22:15 UTC', generatedBy: 'SCADA Gateway', fileSize: '—', status: 'Failed' },
+  ]);
+  const [reportFilter, setReportFilter] = useState<string>('All');
+  const [reportSearch, setReportSearch] = useState<string>('');
+  const [reportDateRange, setReportDateRange] = useState<string>('2026/Oct/01 - 2026/Oct/31');
+  const [viewingReport, setViewingReport] = useState<GeneratedReport | null>(null);
 
   // UI state
   const [notice, setNotice] = useState<string | null>(null);
@@ -560,6 +586,7 @@ export const ReportsAnalyticsView: React.FC = () => {
       {/* ANALYTICS SUITE NAVIGATION TABS */}
       <div className="flex overflow-x-auto no-scrollbar gap-1 border-b border-slate-800 pb-px">
         {[
+          { id: 'report-center', label: 'Report Center (Slide 5)', icon: FileText },
           { id: 'overview', label: 'Executive Rollup & KPIs', icon: Activity },
           { id: 'pressure-temp', label: 'Pressures & Temperatures', icon: Gauge },
           { id: 'flow-prod', label: 'Flow & Production Rates', icon: TrendingUp },
@@ -587,6 +614,427 @@ export const ReportsAnalyticsView: React.FC = () => {
           );
         })}
       </div>
+
+      {/* TAB 0: REPORT CENTER (Slide 5) */}
+      {activeTab === 'report-center' && (
+        <div className="space-y-6">
+          {/* Slide 5: Header Bar & Date Range Selector */}
+          <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <div className="flex items-center gap-2">
+                <FileText className="w-5 h-5 text-cyan-400" />
+                <h3 className="text-base font-bold text-white tracking-wide font-mono">
+                  Report Generation & Engineering Archives (Slide 5)
+                </h3>
+              </div>
+              <p className="text-xs text-slate-400 mt-0.5">
+                On-demand automated report templates, scheduled exports, and regulatory compliance audit records.
+              </p>
+            </div>
+
+            <div className="flex items-center gap-2 font-mono text-xs">
+              <span className="text-slate-400 flex items-center gap-1">
+                <Calendar className="w-3.5 h-3.5 text-cyan-400" />
+                <span>Date Range:</span>
+              </span>
+              <select
+                value={reportDateRange}
+                onChange={(e) => {
+                  setReportDateRange(e.target.value);
+                  showToast(`Selected report generation window: ${e.target.value}`);
+                }}
+                className="bg-slate-950 border border-slate-700 text-cyan-300 rounded px-3 py-1.5 text-xs font-mono focus:outline-none focus:border-cyan-500"
+              >
+                <option value="2026/Oct/01 - 2026/Oct/31">2026/Oct/01 - 2026/Oct/31 (Current Month)</option>
+                <option value="2026/Sep/01 - 2026/Sep/30">2026/Sep/01 - 2026/Sep/30 (Previous Month)</option>
+                <option value="2026/Q3 (Jul - Sep)">2026/Q3 (Jul - Sep)</option>
+                <option value="2026/YTD (Jan - Oct)">2026/YTD (Jan - Oct)</option>
+              </select>
+            </div>
+          </div>
+
+          {/* Slide 5: 4 Report Statistics Cards */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
+              <span className="text-[11px] font-mono text-slate-400 uppercase tracking-wider block">Total Reports</span>
+              <div className="flex items-baseline gap-2 mt-1">
+                <span className="text-3xl font-extrabold font-mono text-white">48</span>
+                <span className="text-xs font-mono text-slate-400">Archived</span>
+              </div>
+              <div className="mt-2 w-full bg-slate-800 rounded-full h-1.5 overflow-hidden">
+                <div className="bg-cyan-500 h-1.5 rounded-full" style={{ width: '100%' }} />
+              </div>
+              <span className="text-[10px] text-slate-400 mt-1.5 block">Historical engineering reports</span>
+            </div>
+
+            <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
+              <span className="text-[11px] font-mono text-slate-400 uppercase tracking-wider block">Completed</span>
+              <div className="flex items-baseline gap-2 mt-1">
+                <span className="text-3xl font-extrabold font-mono text-emerald-400">42</span>
+                <span className="text-xs font-mono text-emerald-400 font-semibold">87.5%</span>
+              </div>
+              <div className="mt-2 w-full bg-slate-800 rounded-full h-1.5 overflow-hidden">
+                <div className="bg-emerald-500 h-1.5 rounded-full" style={{ width: '87.5%' }} />
+              </div>
+              <span className="text-[10px] text-slate-400 mt-1.5 block">Successfully generated & verified</span>
+            </div>
+
+            <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
+              <span className="text-[11px] font-mono text-slate-400 uppercase tracking-wider block">In Progress</span>
+              <div className="flex items-baseline gap-2 mt-1">
+                <span className="text-3xl font-extrabold font-mono text-amber-400">4</span>
+                <span className="text-[10px] font-mono text-amber-400 flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
+                  Rendering
+                </span>
+              </div>
+              <div className="mt-2 w-full bg-slate-800 rounded-full h-1.5 overflow-hidden">
+                <div className="bg-amber-500 h-1.5 rounded-full" style={{ width: '25%' }} />
+              </div>
+              <span className="text-[10px] text-slate-400 mt-1.5 block">Active compute queues</span>
+            </div>
+
+            <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
+              <span className="text-[11px] font-mono text-slate-400 uppercase tracking-wider block">Failed / Errored</span>
+              <div className="flex items-baseline gap-2 mt-1">
+                <span className="text-3xl font-extrabold font-mono text-rose-400">2</span>
+                <span className="text-xs font-mono text-rose-400">4.1%</span>
+              </div>
+              <div className="mt-2 w-full bg-slate-800 rounded-full h-1.5 overflow-hidden">
+                <div className="bg-rose-500 h-1.5 rounded-full" style={{ width: '15%' }} />
+              </div>
+              <span className="text-[10px] text-slate-400 mt-1.5 block">Gateway telemetry timeout</span>
+            </div>
+          </div>
+
+          {/* Slide 5: Report Generation Trend Bar Chart */}
+          <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <div className="flex items-center gap-2">
+                <TrendingUp className="w-4 h-4 text-cyan-400" />
+                <h4 className="text-sm font-bold text-white uppercase tracking-wider font-mono">
+                  Weekly Report Generation Activity & Category Breakdown (Slide 5)
+                </h4>
+              </div>
+              <span className="text-xs font-mono text-slate-400">{reportDateRange}</span>
+            </div>
+
+            <div className="h-64 w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart
+                  data={[
+                    { week: 'Week 1 (Oct 1-7)', production: 10, pressureTemp: 4, wellPerf: 2, equipmentHealth: 1 },
+                    { week: 'Week 2 (Oct 8-14)', production: 12, pressureTemp: 3, wellPerf: 3, equipmentHealth: 2 },
+                    { week: 'Week 3 (Oct 15-21)', production: 14, pressureTemp: 5, wellPerf: 4, equipmentHealth: 3 },
+                    { week: 'Week 4 (Oct 22-28)', production: 12, pressureTemp: 4, wellPerf: 3, equipmentHealth: 2 },
+                  ]}
+                  margin={{ top: 10, right: 20, left: 0, bottom: 10 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
+                  <XAxis dataKey="week" stroke="#94a3b8" fontSize={11} />
+                  <YAxis stroke="#94a3b8" fontSize={11} />
+                  <Tooltip
+                    contentStyle={{ backgroundColor: '#020617', borderColor: '#334155', borderRadius: '0.5rem', fontSize: '12px' }}
+                  />
+                  <Legend wrapperStyle={{ fontSize: '11px', paddingTop: '8px' }} />
+                  <Bar dataKey="production" name="Production Summary" fill="#06b6d4" stackId="a" radius={[0, 0, 0, 0]} />
+                  <Bar dataKey="pressureTemp" name="Pressure & Temp" fill="#3b82f6" stackId="a" radius={[0, 0, 0, 0]} />
+                  <Bar dataKey="wellPerf" name="Well Performance" fill="#10b981" stackId="a" radius={[0, 0, 0, 0]} />
+                  <Bar dataKey="equipmentHealth" name="Equipment Health" fill="#f59e0b" stackId="a" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+
+          {/* Slide 5: Report Templates Gallery */}
+          <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <div>
+                <h4 className="text-sm font-bold text-white uppercase tracking-wider font-mono">
+                  Report Templates Gallery (Slide 5)
+                </h4>
+                <p className="text-xs text-slate-400">Select an operational engineering template to generate automated datasets and printable audit summaries.</p>
+              </div>
+              <span className="text-xs font-mono text-cyan-400">5 Templates Available</span>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3">
+              {[
+                {
+                  id: 'tpl-1',
+                  name: 'Production Summary',
+                  category: 'Production & Reservoir',
+                  desc: 'Daily & weekly fluid rates, BOPD, BFPD, water cut %, target variances, and gas production.',
+                  color: 'cyan',
+                  icon: TrendingUp,
+                },
+                {
+                  id: 'tpl-2',
+                  name: 'Pressure & Temp Report',
+                  category: 'Hydraulics & Thermal',
+                  desc: 'Intake PIP, discharge PDP, tubing/casing pressure gradient, and downhole motor thermal logs.',
+                  color: 'blue',
+                  icon: Gauge,
+                },
+                {
+                  id: 'tpl-3',
+                  name: 'Well Performance Report',
+                  category: 'Inflow & Nodal',
+                  desc: 'Vogel IPR drawdown, BEP operating delta, run-life MTBF, and kWh per lifted barrel economics.',
+                  color: 'emerald',
+                  icon: Sparkles,
+                },
+                {
+                  id: 'tpl-4',
+                  name: 'Equipment Health Report',
+                  category: 'Vibration & Mechanical',
+                  desc: 'Pump affinity efficiency score, RMS vibration envelopes, motor winding insulation, and wear factor.',
+                  color: 'amber',
+                  icon: ShieldCheck,
+                },
+                {
+                  id: 'tpl-5',
+                  name: 'Custom Telemetry Report',
+                  category: 'SCADA Export',
+                  desc: 'Operator-selected Modbus register tags, sampling intervals, and time-stamped raw telemetry.',
+                  color: 'purple',
+                  icon: Database,
+                },
+              ].map(tpl => {
+                const Icon = tpl.icon;
+                return (
+                  <div
+                    key={tpl.id}
+                    className="bg-slate-950 border border-slate-800 rounded-lg p-3.5 space-y-3 flex flex-col justify-between hover:border-cyan-500/50 transition-all group"
+                  >
+                    <div>
+                      <div className="flex items-center justify-between">
+                        <span className="p-2 rounded bg-slate-900 border border-slate-800 group-hover:border-cyan-500/40 transition-colors">
+                          <Icon className="w-4 h-4 text-cyan-400" />
+                        </span>
+                        <span className="text-[10px] font-mono text-slate-500">{tpl.category}</span>
+                      </div>
+                      <h5 className="text-xs font-bold text-white mt-2 font-mono group-hover:text-cyan-300 transition-colors">
+                        {tpl.name}
+                      </h5>
+                      <p className="text-[11px] text-slate-400 mt-1 leading-snug">
+                        {tpl.desc}
+                      </p>
+                    </div>
+
+                    <button
+                      onClick={() => {
+                        const newReport: GeneratedReport = {
+                          id: `RPT-2026-${Math.floor(110 + Math.random() * 880)}`,
+                          name: `${tpl.name} (${reportDateRange.split(' ')[0]})`,
+                          template: tpl.name,
+                          dateRange: reportDateRange,
+                          generatedAt: `${new Date().toISOString().replace('T', ' ').slice(0, 16)} UTC`,
+                          generatedBy: 'Current Operator (RTOC)',
+                          fileSize: `${(1.2 + Math.random() * 3.4).toFixed(1)} MB`,
+                          status: 'Completed',
+                        };
+                        setReports([newReport, ...reports]);
+                        showToast(`Generated new report ${newReport.id}: "${newReport.name}"`);
+                      }}
+                      className="w-full py-1.5 px-2 rounded bg-slate-900 hover:bg-cyan-600 border border-slate-700 hover:border-cyan-500 text-xs text-cyan-300 hover:text-white font-semibold transition-all flex items-center justify-center gap-1.5"
+                    >
+                      <span>Generate Now</span>
+                      <ChevronRight className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Slide 5: Recent Reports Table with Search & Status Filter */}
+          <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 pb-3">
+              <div>
+                <h4 className="text-sm font-bold text-white uppercase tracking-wider font-mono">
+                  Recent Generated Reports & Download Archives (Slide 5)
+                </h4>
+                <p className="text-xs text-slate-400">Download CSV raw datasets, inspect printable summaries, or review generation history.</p>
+              </div>
+
+              {/* Search & Status Filter */}
+              <div className="flex items-center gap-2 flex-wrap text-xs">
+                <div className="relative">
+                  <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    value={reportSearch}
+                    onChange={(e) => setReportSearch(e.target.value)}
+                    placeholder="Search reports..."
+                    className="bg-slate-950 border border-slate-700 rounded pl-8 pr-2.5 py-1 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500"
+                  />
+                </div>
+
+                <select
+                  value={reportFilter}
+                  onChange={(e) => setReportFilter(e.target.value)}
+                  className="bg-slate-950 border border-slate-700 text-slate-300 rounded px-2.5 py-1 text-xs"
+                >
+                  <option value="All">All Statuses</option>
+                  <option value="Completed">Completed</option>
+                  <option value="In Progress">In Progress</option>
+                  <option value="Failed">Failed</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="overflow-x-auto border border-slate-800 rounded-lg">
+              <table className="w-full text-left text-xs font-mono">
+                <thead className="bg-slate-950/80 text-slate-400 border-b border-slate-800 uppercase text-[10px] tracking-wider">
+                  <tr>
+                    <th className="px-3 py-2.5">Report ID</th>
+                    <th className="px-3 py-2.5">Report Title</th>
+                    <th className="px-3 py-2.5">Template Type</th>
+                    <th className="px-3 py-2.5">Date Range</th>
+                    <th className="px-3 py-2.5">Generated At</th>
+                    <th className="px-3 py-2.5">Generated By</th>
+                    <th className="px-3 py-2.5">File Size</th>
+                    <th className="px-3 py-2.5">Status</th>
+                    <th className="px-3 py-2.5 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-800/60 bg-slate-900/50">
+                  {reports
+                    .filter(r => {
+                      const matchSearch = r.name.toLowerCase().includes(reportSearch.toLowerCase()) || r.id.toLowerCase().includes(reportSearch.toLowerCase());
+                      const matchFilter = reportFilter === 'All' || r.status === reportFilter;
+                      return matchSearch && matchFilter;
+                    })
+                    .map(rpt => (
+                      <tr key={rpt.id} className="hover:bg-slate-800/40 transition-colors">
+                        <td className="px-3 py-2.5 font-bold text-cyan-400">{rpt.id}</td>
+                        <td className="px-3 py-2.5 text-white font-sans font-semibold">{rpt.name}</td>
+                        <td className="px-3 py-2.5 text-slate-300 font-sans">{rpt.template}</td>
+                        <td className="px-3 py-2.5 text-slate-400 font-mono text-[11px] whitespace-nowrap">{rpt.dateRange}</td>
+                        <td className="px-3 py-2.5 text-slate-300 font-mono text-[11px] whitespace-nowrap">{rpt.generatedAt}</td>
+                        <td className="px-3 py-2.5 text-slate-300 font-sans">{rpt.generatedBy}</td>
+                        <td className="px-3 py-2.5 text-slate-400 font-mono">{rpt.fileSize}</td>
+                        <td className="px-3 py-2.5">
+                          <span className={`px-2 py-0.5 rounded text-[10px] font-sans font-semibold border ${
+                            rpt.status === 'Completed' ? 'bg-emerald-950 text-emerald-300 border-emerald-800' :
+                            rpt.status === 'In Progress' ? 'bg-amber-950 text-amber-300 border-amber-800' :
+                            'bg-rose-950 text-rose-300 border-rose-800'
+                          }`}>
+                            {rpt.status}
+                          </span>
+                        </td>
+                        <td className="px-3 py-2.5 text-right font-sans">
+                          <div className="flex items-center justify-end gap-1.5">
+                            <button
+                              onClick={() => {
+                                // Generate CSV export for this report
+                                const headers = ['Timestamp', 'Well_Name', 'Lift_Type', 'Intake_Pressure_psi', 'Discharge_Pressure_psi', 'Oil_BOPD', 'Gross_BFPD', 'Water_Cut_Pct', 'Motor_Temp_F', 'VFD_Hz', 'Status'];
+                                const demoRows = [
+                                  ['2026-10-28 07:00:00 UTC', 'Phantom State 104-2H', 'ESP', 840, 2950, 985, 2450, 59.8, 198, 58.5, 'Nominal'],
+                                  ['2026-10-28 07:00:00 UTC', 'Red River Federal 82-4H', 'ESP', 620, 2640, 1120, 3100, 63.8, 215, 61.2, 'Nominal'],
+                                  ['2026-10-28 07:00:00 UTC', 'Silver Spur 99-1H', 'ESP', 790, 2810, 840, 2200, 61.8, 192, 57.0, 'Nominal'],
+                                  ['2026-10-28 07:00:00 UTC', 'War Admiral 112-1H', 'ESP', 880, 3100, 1280, 3600, 64.4, 204, 62.5, 'Nominal'],
+                                  ['2026-10-28 07:00:00 UTC', 'Canyon Creek 19-3H', 'Rod Pump', 450, 1850, 340, 980, 65.3, 168, 52.0, 'Warning'],
+                                ];
+                                const csvContent = "data:text/csv;charset=utf-8," + [headers.join(','), ...demoRows.map(r => r.join(','))].join('\n');
+                                const encodedUri = encodeURI(csvContent);
+                                const link = document.createElement('a');
+                                link.setAttribute('href', encodedUri);
+                                link.setAttribute('download', `${rpt.id}_${rpt.template.replace(/\s+/g, '_')}.csv`);
+                                document.body.appendChild(link);
+                                link.click();
+                                document.body.removeChild(link);
+                                showToast(`Downloaded CSV for ${rpt.id}.`);
+                              }}
+                              className="px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-cyan-400 hover:text-cyan-300 text-[11px] font-mono border border-slate-700 transition-colors flex items-center gap-1"
+                              title="Download Report CSV"
+                            >
+                              <Download className="w-3 h-3" />
+                              <span>CSV</span>
+                            </button>
+                            <button
+                              onClick={() => setViewingReport(rpt)}
+                              className="px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white text-[11px] border border-slate-700 transition-colors"
+                              title="Inspect Summary"
+                            >
+                              Summary
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* Printable Report Summary Modal */}
+          {viewingReport && (
+            <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+              <div className="bg-slate-900 border border-slate-800 rounded-xl max-w-2xl w-full p-6 space-y-4 shadow-2xl">
+                <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+                  <div>
+                    <span className="text-xs font-mono text-cyan-400 font-bold">{viewingReport.id} • {viewingReport.template}</span>
+                    <h3 className="text-base font-bold text-white mt-0.5">{viewingReport.name}</h3>
+                  </div>
+                  <button onClick={() => setViewingReport(null)} className="text-slate-400 hover:text-white">✕</button>
+                </div>
+
+                <div className="space-y-3 text-xs text-slate-300">
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 bg-slate-950 p-3 rounded-lg border border-slate-800 font-mono text-[11px]">
+                    <div>
+                      <span className="text-slate-500 block text-[10px]">DATE RANGE</span>
+                      <span className="text-white font-bold">{viewingReport.dateRange}</span>
+                    </div>
+                    <div>
+                      <span className="text-slate-500 block text-[10px]">GENERATED BY</span>
+                      <span className="text-cyan-300">{viewingReport.generatedBy}</span>
+                    </div>
+                    <div>
+                      <span className="text-slate-500 block text-[10px]">FILE SIZE</span>
+                      <span className="text-white">{viewingReport.fileSize}</span>
+                    </div>
+                    <div>
+                      <span className="text-slate-500 block text-[10px]">STATUS</span>
+                      <span className="text-emerald-400 font-bold">{viewingReport.status}</span>
+                    </div>
+                  </div>
+
+                  <div className="bg-slate-950 p-4 rounded-lg border border-slate-800 space-y-2">
+                    <h5 className="font-bold text-white uppercase text-[11px] tracking-wide font-mono">Executive Summary Extract:</h5>
+                    <p className="text-slate-300 leading-relaxed">
+                      This report compiles verified telemetry archives from 20 monitored artificial lift wellbores in the Delaware and Midland basins. Operating efficiency for the reporting period averaged 91.4% with an overall fleet uptime of 99.88%. Total lifted fluid reached 48,200 BFPD across monitored ESP and sucker rod systems with mean water cut at 62.4%.
+                    </p>
+                    <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between text-[11px] font-mono text-slate-400">
+                      <span>Verification Hash: SHA256-ALS-9981-D9F4</span>
+                      <span className="text-emerald-400">✓ Digital Signature Valid</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex justify-end gap-2 pt-3 border-t border-slate-800">
+                  <button
+                    onClick={() => {
+                      window.print();
+                    }}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold"
+                  >
+                    <Printer className="w-3.5 h-3.5 text-cyan-400" />
+                    <span>Print Report</span>
+                  </button>
+                  <button
+                    onClick={() => setViewingReport(null)}
+                    className="px-4 py-1.5 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white font-semibold text-xs"
+                  >
+                    Close
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* TAB 1: EXECUTIVE OVERVIEW & KPIS */}
       {activeTab === 'overview' && (

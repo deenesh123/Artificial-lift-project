@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { 
   Activity, 
   Gauge, 
@@ -19,7 +19,16 @@ import {
   Layers,
   Thermometer,
   RotateCw,
-  Compass
+  Compass,
+  Clock,
+  Search,
+  ArrowLeft,
+  XCircle,
+  Radio,
+  FileSpreadsheet,
+  TrendingUp,
+  Battery,
+  AlertCircle
 } from 'lucide-react';
 import { 
   LineChart, 
@@ -29,50 +38,88 @@ import {
   CartesianGrid, 
   Tooltip, 
   ResponsiveContainer, 
-  Legend 
+  Legend,
+  BarChart,
+  Bar
 } from 'recharts';
 import { 
   DEMO_WELLS, 
   DEMO_ALARMS, 
   DEMO_JOBS, 
-  TELEMETRY_HISTORY 
+  DEMO_EVENTS,
+  TELEMETRY_HISTORY,
+  WELLS_DOWN_24H_DATA,
+  STATUS_SUMMARY_24H_DATA,
+  FLEET_PRODUCTION_TREND
 } from '../../data/mockData';
 import { StorageService } from '../../services/storageService';
-import { WellAsset, TelemetryPoint } from '../../types';
+import { WellAsset, TelemetryPoint, OperationalEvent, AlarmItem } from '../../types';
 
 interface UserOperationsDashboardProps {
   onNavigateToRoute: (routeId: string) => void;
+  selectedAssetId?: string | null;
+  onSelectAssetId?: (assetId: string | null) => void;
 }
 
-export const UserOperationsDashboard: React.FC<UserOperationsDashboardProps> = ({ onNavigateToRoute }) => {
+export const UserOperationsDashboard: React.FC<UserOperationsDashboardProps> = ({ 
+  onNavigateToRoute,
+  selectedAssetId: controlledAssetId,
+  onSelectAssetId,
+}) => {
   const [wellsList, setWellsList] = useState<WellAsset[]>(() => StorageService.getWells());
-  const [selectedWellId, setSelectedWellId] = useState<string>(() => StorageService.getWells()[0]?.id || DEMO_WELLS[0].id);
+  
+  // Internal selection if not controlled from parent
+  const [internalSelectedWellId, setInternalSelectedWellId] = useState<string | null>(null);
+
+  // Time filter for trend chart (PART 6.3)
+  const [chartTimeRange, setChartTimeRange] = useState<'15m' | '1h' | '6h' | '12h' | '24h'>('1h');
+
+  // Sub-tabs when on All Assets mode
+  const [allAssetsTab, setAllAssetsTab] = useState<'fleet-overview' | 'wells-down-24h' | 'summary-24h'>('fleet-overview');
+
   const [isSimulating, setIsSimulating] = useState<boolean>(true);
   const [telemetry, setTelemetry] = useState<TelemetryPoint[]>(TELEMETRY_HISTORY);
   const [vfdTrimHz, setVfdTrimHz] = useState<number>(58.5);
   const [actionNotice, setActionNotice] = useState<string | null>(null);
-  const [activeAlarms, setActiveAlarms] = useState(DEMO_ALARMS);
+  const [activeAlarms, setActiveAlarms] = useState<AlarmItem[]>(DEMO_ALARMS);
+  const [tableSearchTerm, setTableSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'ALL' | 'RUNNING' | 'DOWN' | 'WARNING'>('ALL');
 
   useEffect(() => {
     const handleStorage = () => {
       const data = StorageService.getWells();
       setWellsList(data);
-      if (!data.some(w => w.id === selectedWellId) && data.length > 0) {
-        setSelectedWellId(data[0].id);
-      }
     };
     window.addEventListener('storage', handleStorage);
     return () => window.removeEventListener('storage', handleStorage);
-  }, [selectedWellId]);
+  }, []);
 
-  const selectedWell: WellAsset = wellsList.find(w => w.id === selectedWellId) || wellsList[0] || DEMO_WELLS[0];
-  const wellAlarms = activeAlarms.filter(a => a.wellId === selectedWell.id && !a.acknowledged);
-  const wellJobs = DEMO_JOBS.filter(j => j.wellId === selectedWell.id);
+  // Determine current active asset ID
+  const activeAssetId = controlledAssetId !== undefined ? controlledAssetId : internalSelectedWellId;
+  const isSingleAssetMode = activeAssetId !== null && activeAssetId !== undefined;
+
+  const selectedWell: WellAsset = useMemo(() => {
+    if (!activeAssetId) return wellsList[0] || DEMO_WELLS[0];
+    return wellsList.find(w => w.id === activeAssetId || w.wellCode === activeAssetId) || wellsList[0] || DEMO_WELLS[0];
+  }, [wellsList, activeAssetId]);
+
+  // Alarms and events filtered strictly to selected well when in single asset mode
+  const wellAlarms = useMemo(() => {
+    return activeAlarms.filter(a => a.wellId === selectedWell.id && !a.acknowledged);
+  }, [activeAlarms, selectedWell]);
+
+  const wellJobs = useMemo(() => {
+    return DEMO_JOBS.filter(j => j.wellId === selectedWell.id);
+  }, [selectedWell]);
+
+  const wellEvents: OperationalEvent[] = useMemo(() => {
+    return DEMO_EVENTS.filter(e => e.wellId === selectedWell.id);
+  }, [selectedWell]);
 
   // Sync VFD slider when well changes
   useEffect(() => {
     setVfdTrimHz(selectedWell.vfdFrequencyHz || 55.0);
-  }, [selectedWellId]);
+  }, [selectedWell.id]);
 
   // Live telemetry pulse simulator
   useEffect(() => {
@@ -80,11 +127,9 @@ export const UserOperationsDashboard: React.FC<UserOperationsDashboardProps> = (
 
     const interval = setInterval(() => {
       setTelemetry(prev => {
-        const last = prev[prev.length - 1];
         const nextTime = new Date();
         const timeLabel = nextTime.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
 
-        // Calculate slight fluctuations based on VFD trim
         const speedRatio = vfdTrimHz / 58.5;
         const intakeFluct = (Math.random() - 0.5) * 4;
         const currentFluct = (Math.random() - 0.5) * 0.4;
@@ -125,7 +170,42 @@ export const UserOperationsDashboard: React.FC<UserOperationsDashboardProps> = (
     setTimeout(() => setActionNotice(null), 4000);
   };
 
+  const handleSelectAsset = (assetId: string | null) => {
+    if (onSelectAssetId) {
+      onSelectAssetId(assetId);
+    } else {
+      setInternalSelectedWellId(assetId);
+    }
+  };
+
   const latestTelemetry = telemetry[telemetry.length - 1];
+
+  // Fleet overview statistics
+  const runningCount = wellsList.filter(w => w.status === 'Nominal' || w.status === 'Testing').length;
+  const downCount = wellsList.filter(w => w.status === 'Offline' || w.status === 'Critical').length;
+  const warningCount = wellsList.filter(w => w.status === 'Warning').length;
+  const totalProductionBpd = wellsList.reduce((sum, w) => sum + (w.currentBopd || 0), 0);
+  const avgHealth = Math.round(wellsList.reduce((sum, w) => sum + (w.healthScore || 0), 0) / (wellsList.length || 1));
+
+  // Filtered wells for table
+  const filteredWells = wellsList.filter(w => {
+    const term = tableSearchTerm.toLowerCase();
+    const shortName = (w.wellCode || w.id).toLowerCase();
+    const name = w.name.toLowerCase();
+    const basin = w.basin.toLowerCase();
+    const matchesSearch = shortName.includes(term) || name.includes(term) || basin.includes(term);
+
+    const isRunning = w.status === 'Nominal' || w.status === 'Testing';
+    const isDown = w.status === 'Offline' || w.status === 'Critical';
+    const isWarn = w.status === 'Warning';
+
+    const matchesStatus = 
+      statusFilter === 'ALL' ? true :
+      statusFilter === 'RUNNING' ? isRunning :
+      statusFilter === 'DOWN' ? isDown : isWarn;
+
+    return matchesSearch && matchesStatus;
+  });
 
   return (
     <div className="p-4 lg:p-6 space-y-6 max-w-7xl mx-auto">
@@ -140,467 +220,939 @@ export const UserOperationsDashboard: React.FC<UserOperationsDashboardProps> = (
         </div>
       )}
 
-      {/* Well Selector & Live Telemetry Controls Bar */}
-      <div className="bg-slate-900/90 border border-slate-800 rounded-xl p-4 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
-        
-        {/* Left: Well Selector */}
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-cyan-950 border border-cyan-800 flex items-center justify-center text-cyan-400 shrink-0">
-            <Activity className="w-5 h-5" />
-          </div>
-          <div>
-            <div className="text-[10px] font-mono uppercase tracking-wider text-slate-400">
-              ACTIVE WELLHEAD UNDER SURVEILLANCE
-            </div>
-            <div className="flex items-center gap-2 mt-0.5">
-              <select
-                value={selectedWellId}
-                onChange={(e) => setSelectedWellId(e.target.value)}
-                className="bg-slate-950 border border-slate-700 text-white font-semibold text-sm rounded px-2.5 py-1 focus:outline-none focus:border-cyan-500"
-              >
-                {wellsList.map(w => (
-                  <option key={w.id} value={w.id}>
-                    {w.name} ({w.liftType} — {w.status})
-                  </option>
-                ))}
-              </select>
-
-              <span className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase ${
-                selectedWell.status === 'Nominal' ? 'bg-emerald-950 text-emerald-300 border border-emerald-800' :
-                selectedWell.status === 'Warning' ? 'bg-amber-950 text-amber-300 border border-amber-800' :
-                selectedWell.status === 'Critical' ? 'bg-rose-950 text-rose-300 border border-rose-800' :
-                'bg-slate-800 text-slate-400'
-              }`}>
-                {selectedWell.status}
-              </span>
-            </div>
-          </div>
-        </div>
-
-        {/* Right: Telemetry Stream State & Mode */}
-        <div className="flex items-center gap-3 self-end md:self-center">
-          <div className="flex items-center gap-2 text-xs text-slate-400">
-            <span className="font-mono text-[11px] text-slate-500 hidden sm:inline">
-              Poll Rate: 1.0s · Phoenix Downhole Sensor
-            </span>
-            <button
-              onClick={() => setIsSimulating(!isSimulating)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-semibold transition-colors ${
-                isSimulating 
-                  ? 'bg-emerald-950/70 border border-emerald-700 text-emerald-300' 
-                  : 'bg-slate-800 text-slate-400 border border-slate-700'
-              }`}
-            >
-              {isSimulating ? (
-                <>
-                  <Pause className="w-3.5 h-3.5" />
-                  <span>Streaming Live</span>
-                </>
-              ) : (
-                <>
-                  <Play className="w-3.5 h-3.5" />
-                  <span>Stream Paused</span>
-                </>
-              )}
-            </button>
-          </div>
-        </div>
-
-      </div>
-
-      {/* Active Alarm Alert Banner for Current Well (if any) */}
-      {wellAlarms.length > 0 && (
-        <div className="bg-rose-950/40 border border-rose-800 rounded-xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-lg">
-          <div className="flex items-start gap-3">
-            <ShieldAlert className="w-5 h-5 text-rose-400 shrink-0 mt-0.5" />
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-bold text-rose-300 font-mono uppercase">
-                  UNRESOLVED ALARM TRIP ({wellAlarms[0].severity})
-                </span>
-                <span className="text-[10px] text-slate-400 font-mono">{wellAlarms[0].id}</span>
-              </div>
-              <p className="text-xs text-white font-medium mt-0.5">{wellAlarms[0].title}</p>
-              <p className="text-[11px] text-slate-300 mt-0.5">{wellAlarms[0].description}</p>
-            </div>
-          </div>
-
-          <button
-            onClick={() => handleAcknowledgeAlarm(wellAlarms[0].id)}
-            className="px-3.5 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-500 text-white text-xs font-semibold shadow shrink-0 transition-colors"
-          >
-            Acknowledge Alarm
-          </button>
-        </div>
-      )}
-
-      {/* 6 High-Density Live Telemetry Parameter Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
-        {/* Metric 1: Intake Pressure */}
-        <div className="bg-slate-900/90 border border-slate-800 rounded-xl p-3.5">
-          <div className="flex items-center justify-between text-[11px] text-slate-400 font-medium">
-            <span>Intake Pressure</span>
-            <Gauge className="w-3.5 h-3.5 text-cyan-400" />
-          </div>
-          <div className="mt-1 text-xl font-bold text-white font-mono tabular-nums">
-            {latestTelemetry?.intakePressure ?? selectedWell.intakePressurePsi} <span className="text-xs font-normal text-slate-400">psi</span>
-          </div>
-          <div className="mt-1 text-[10px] text-slate-400 flex items-center justify-between">
-            <span>Setpoint: 850 psi</span>
-            <span className="text-emerald-400 font-mono">Normal</span>
-          </div>
-        </div>
-
-        {/* Metric 2: Discharge Pressure */}
-        <div className="bg-slate-900/90 border border-slate-800 rounded-xl p-3.5">
-          <div className="flex items-center justify-between text-[11px] text-slate-400 font-medium">
-            <span>Discharge Head</span>
-            <Activity className="w-3.5 h-3.5 text-blue-400" />
-          </div>
-          <div className="mt-1 text-xl font-bold text-white font-mono tabular-nums">
-            {latestTelemetry?.dischargePressure ?? selectedWell.dischargePressurePsi} <span className="text-xs font-normal text-slate-400">psi</span>
-          </div>
-          <div className="mt-1 text-[10px] text-slate-400 flex items-center justify-between">
-            <span>Diff: +{Math.round((latestTelemetry?.dischargePressure || selectedWell.dischargePressurePsi) - (latestTelemetry?.intakePressure || selectedWell.intakePressurePsi))} psi</span>
-            <span className="text-blue-400 font-mono">182 Stg</span>
-          </div>
-        </div>
-
-        {/* Metric 3: Motor Current */}
-        <div className="bg-slate-900/90 border border-slate-800 rounded-xl p-3.5">
-          <div className="flex items-center justify-between text-[11px] text-slate-400 font-medium">
-            <span>Motor Amperage</span>
-            <Zap className="w-3.5 h-3.5 text-amber-400" />
-          </div>
-          <div className="mt-1 text-xl font-bold text-white font-mono tabular-nums">
-            {latestTelemetry?.motorCurrent ?? selectedWell.motorCurrentA} <span className="text-xs font-normal text-slate-400">A</span>
-          </div>
-          <div className="mt-1 text-[10px] text-slate-400 flex items-center justify-between">
-            <span>FLA: 58.0 A max</span>
-            <span className="text-amber-400 font-mono">{Math.round(((latestTelemetry?.motorCurrent || selectedWell.motorCurrentA) / 58) * 100)}% Load</span>
-          </div>
-        </div>
-
-        {/* Metric 4: Downhole Motor Temp */}
-        <div className="bg-slate-900/90 border border-slate-800 rounded-xl p-3.5">
-          <div className="flex items-center justify-between text-[11px] text-slate-400 font-medium">
-            <span>Motor Temp (RTD)</span>
-            <Thermometer className="w-3.5 h-3.5 text-rose-400" />
-          </div>
-          <div className="mt-1 text-xl font-bold text-white font-mono tabular-nums">
-            {latestTelemetry?.motorTemp ?? selectedWell.motorTempF} <span className="text-xs font-normal text-slate-400">°F</span>
-          </div>
-          <div className="mt-1 text-[10px] text-slate-400 flex items-center justify-between">
-            <span>Max Trip: 250 °F</span>
-            <span className={(latestTelemetry?.motorTemp || selectedWell.motorTempF) > 225 ? 'text-rose-400 font-mono' : 'text-emerald-400 font-mono'}>
-              {(latestTelemetry?.motorTemp || selectedWell.motorTempF) > 225 ? 'High' : 'Normal'}
-            </span>
-          </div>
-        </div>
-
-        {/* Metric 5: Vibration RMS */}
-        <div className="bg-slate-900/90 border border-slate-800 rounded-xl p-3.5">
-          <div className="flex items-center justify-between text-[11px] text-slate-400 font-medium">
-            <span>Vibration (Triaxial)</span>
-            <RotateCw className="w-3.5 h-3.5 text-indigo-400" />
-          </div>
-          <div className="mt-1 text-xl font-bold text-white font-mono tabular-nums">
-            {latestTelemetry?.vibration ?? selectedWell.vibrationG} <span className="text-xs font-normal text-slate-400">g</span>
-          </div>
-          <div className="mt-1 text-[10px] text-slate-400 flex items-center justify-between">
-            <span>Warn: &gt;0.50 g</span>
-            <span className={(latestTelemetry?.vibration || selectedWell.vibrationG) > 0.5 ? 'text-amber-400 font-mono' : 'text-emerald-400 font-mono'}>
-              {(latestTelemetry?.vibration || selectedWell.vibrationG) > 0.5 ? 'Elevated' : 'Nominal'}
-            </span>
-          </div>
-        </div>
-
-        {/* Metric 6: Liquid & Oil Rate */}
-        <div className="bg-slate-900/90 border border-slate-800 rounded-xl p-3.5">
-          <div className="flex items-center justify-between text-[11px] text-slate-400 font-medium">
-            <span>Calculated Flow</span>
-            <Flame className="w-3.5 h-3.5 text-cyan-400" />
-          </div>
-          <div className="mt-1 text-xl font-bold text-white font-mono tabular-nums">
-            {latestTelemetry?.flowRate ?? selectedWell.currentBopd} <span className="text-xs font-normal text-slate-400">BOPD</span>
-          </div>
-          <div className="mt-1 text-[10px] text-slate-400 flex items-center justify-between">
-            <span>WC: {selectedWell.waterCutPct}%</span>
-            <span className="text-cyan-400 font-mono">{selectedWell.grossFluidBpd} BFPD</span>
-          </div>
-        </div>
-      </div>
-
-      {/* Main Grid: Telemetry Trends Chart (8 cols) & Downhole ESP String Physical Visualizer (4 cols) */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        
-        {/* Left: Multi-parameter Live Sensor Trend (8 cols) */}
-        <div className="lg:col-span-8 bg-slate-900/90 border border-slate-800 rounded-xl p-5">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
-            <div>
-              <h3 className="text-sm font-bold text-white tracking-tight flex items-center gap-2">
-                <span>Real-Time Sensor Telemetry Stream</span>
-                <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-cyan-950 text-cyan-300 border border-cyan-800">
-                  {selectedWell.name}
-                </span>
-              </h3>
-              <p className="text-xs text-slate-400 mt-0.5">
-                Downhole intake & discharge pressure correlation with motor current and temperature.
-              </p>
-            </div>
-
-            <div className="text-xs font-mono text-slate-400 flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-emerald-400" />
-              <span>Simulated Pulse</span>
-            </div>
-          </div>
-
-          <div className="h-72 w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={telemetry} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#1E293B" vertical={false} />
-                <XAxis dataKey="time" stroke="#64748B" tick={{ fontSize: 10 }} />
-                <YAxis yAxisId="press" stroke="#06B6D4" tick={{ fontSize: 10 }} domain={['auto', 'auto']} />
-                <YAxis yAxisId="current" orientation="right" stroke="#F59E0B" tick={{ fontSize: 10 }} domain={['auto', 'auto']} />
-                <Tooltip 
-                  contentStyle={{ backgroundColor: '#0F172A', borderColor: '#334155', borderRadius: '8px', fontSize: '11px' }}
-                />
-                <Legend wrapperStyle={{ fontSize: '11px', paddingTop: '6px' }} />
-                <Line yAxisId="press" type="monotone" dataKey="intakePressure" name="Intake Press (psi)" stroke="#06B6D4" strokeWidth={2} dot={false} />
-                <Line yAxisId="press" type="monotone" dataKey="dischargePressure" name="Discharge Press (psi)" stroke="#3B82F6" strokeWidth={2} dot={false} />
-                <Line yAxisId="current" type="monotone" dataKey="motorCurrent" name="Motor Current (A)" stroke="#F59E0B" strokeWidth={2} dot={false} />
-                <Line yAxisId="current" type="monotone" dataKey="motorTemp" name="Motor Temp (°F)" stroke="#EF4444" strokeWidth={2} strokeDasharray="4 4" dot={false} />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-
-          {/* Interactive VFD Frequency Control Strip */}
-          <div className="mt-4 pt-4 border-t border-slate-800 bg-slate-950/60 rounded-lg p-3">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <div>
-                <div className="text-xs font-bold text-white flex items-center gap-2">
-                  <Sliders className="w-4 h-4 text-cyan-400" />
-                  <span>Variable Frequency Drive (VFD) Speed Optimization</span>
+      {/* ======================================================== */}
+      {/* CASE 1: ASSET-SPECIFIC OPERATIONAL COCKPIT (PART 6)     */}
+      {/* ======================================================== */}
+      {isSingleAssetMode ? (
+        <div className="space-y-6">
+          {/* PART 6.1: Selected Asset Information Header */}
+          <div className="bg-slate-900 border border-cyan-500/40 rounded-xl p-5 shadow-lg relative overflow-hidden">
+            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+              <div className="space-y-1">
+                <div className="flex flex-wrap items-center gap-2.5">
+                  <span className="text-sm font-mono font-bold px-2.5 py-1 rounded bg-cyan-950 text-cyan-300 border border-cyan-500/60">
+                    {selectedWell.wellCode || selectedWell.id}
+                  </span>
+                  <h2 className="text-lg font-bold text-white tracking-tight">
+                    {selectedWell.name}
+                  </h2>
+                  <span className={`px-2.5 py-0.5 rounded text-[11px] font-mono font-bold uppercase ${
+                    selectedWell.status === 'Nominal' ? 'bg-emerald-950 text-emerald-300 border border-emerald-800' :
+                    selectedWell.status === 'Warning' ? 'bg-amber-950 text-amber-300 border border-amber-800' :
+                    'bg-rose-950 text-rose-300 border border-rose-800'
+                  }`}>
+                    ● {selectedWell.status === 'Offline' ? 'DOWN' : selectedWell.status}
+                  </span>
+                  <span className="text-xs text-slate-400 font-mono bg-slate-950 px-2 py-0.5 rounded border border-slate-800">
+                    Asset ID: {selectedWell.id}
+                  </span>
                 </div>
-                <div className="text-[11px] text-slate-400 mt-0.5">
-                  Adjust motor drive frequency to optimize reservoir drawdown and dynamic fluid level.
+
+                <div className="text-xs text-slate-400 flex flex-wrap items-center gap-2 pt-1 font-sans">
+                  <span>Basin: <strong className="text-slate-200">{selectedWell.basin}</strong></span>
+                  <span>•</span>
+                  <span>Field: <strong className="text-slate-200">{selectedWell.field}</strong></span>
+                  <span>•</span>
+                  <span>Pad: <strong className="text-slate-200">{selectedWell.padName}</strong></span>
+                  <span>•</span>
+                  <span>Lift: <strong className="text-cyan-400">{selectedWell.liftType}</strong></span>
+                  <span>•</span>
+                  <span>Run Life: <strong className="text-slate-200">{selectedWell.runLifeDays} Days</strong></span>
                 </div>
               </div>
 
-              <div className="flex items-center gap-3">
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => setVfdTrimHz(prev => Math.max(45, Math.round((prev - 0.5) * 10) / 10))}
-                    className="w-7 h-7 rounded bg-slate-800 hover:bg-slate-700 text-white font-mono text-xs flex items-center justify-center font-bold"
-                  >
-                    -
-                  </button>
-                  <div className="px-3 py-1 rounded bg-slate-900 border border-slate-700 font-mono text-sm font-bold text-cyan-400 tabular-nums">
-                    {vfdTrimHz.toFixed(1)} Hz
-                  </div>
-                  <button
-                    onClick={() => setVfdTrimHz(prev => Math.min(65, Math.round((prev + 0.5) * 10) / 10))}
-                    className="w-7 h-7 rounded bg-slate-800 hover:bg-slate-700 text-white font-mono text-xs flex items-center justify-center font-bold"
-                  >
-                    +
-                  </button>
-                </div>
+              {/* Controls on Right */}
+              <div className="flex items-center gap-2 shrink-0">
+                <button
+                  onClick={() => setIsSimulating(!isSimulating)}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
+                    isSimulating 
+                      ? 'bg-emerald-950/70 border border-emerald-700 text-emerald-300' 
+                      : 'bg-slate-800 text-slate-400 border border-slate-700'
+                  }`}
+                >
+                  {isSimulating ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
+                  <span>{isSimulating ? 'Live Telemetry' : 'Paused'}</span>
+                </button>
 
                 <button
-                  onClick={handleApplyVfdTrim}
-                  className="px-3.5 py-1.5 rounded bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-semibold shadow-sm transition-colors"
+                  onClick={() => handleSelectAsset(null)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-cyan-300 border border-slate-700 transition-colors"
+                  title="Switch to All Assets Overview"
                 >
-                  Apply Speed Setpoint
+                  <ArrowLeft className="w-3.5 h-3.5" />
+                  <span>All Assets Overview</span>
                 </button>
               </div>
             </div>
-
-            <div className="mt-2 text-[10px] text-slate-500 flex items-center justify-between font-mono">
-              <span>Min safe speed: 45.0 Hz (Motor cooling limit)</span>
-              <span>Max allowed: 65.0 Hz (Thrust bearing load limit)</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Right: Downhole ESP String Schematic (4 cols) */}
-        <div className="lg:col-span-4 bg-slate-900/90 border border-slate-800 rounded-xl p-5 flex flex-col justify-between">
-          <div>
-            <div className="flex items-center justify-between border-b border-slate-800 pb-2 mb-3">
-              <h3 className="text-sm font-bold text-white tracking-tight flex items-center gap-2">
-                <Layers className="w-4 h-4 text-cyan-400" />
-                <span>Downhole ESP Assembly</span>
-              </h3>
-              <span className="text-[10px] font-mono text-slate-400">
-                Depth: {selectedWell.totalDepthFt.toLocaleString()} ft
-              </span>
-            </div>
-
-            {/* Vertical Stack Schematic */}
-            <div className="space-y-2 py-1 text-xs">
-              
-              {/* Surface Wellhead */}
-              <div className="p-2.5 rounded bg-slate-950/80 border border-slate-800 flex items-center justify-between">
-                <div>
-                  <div className="font-semibold text-slate-200 text-xs">Surface Wellhead & Tree</div>
-                  <div className="text-[10px] text-slate-400">Flowline Temp: {selectedWell.wellheadTempF}°F</div>
-                </div>
-                <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-emerald-950 text-emerald-300">
-                  Surface
-                </span>
-              </div>
-
-              {/* Tubing string connector */}
-              <div className="text-center font-mono text-[10px] text-slate-600 py-0.5">
-                ↓ 2-7/8" L-80 Production Tubing String ↓
-              </div>
-
-              {/* Discharge Sub */}
-              <div className="p-2.5 rounded bg-slate-950/80 border border-blue-900/40 flex items-center justify-between">
-                <div>
-                  <div className="font-semibold text-blue-300 text-xs">Discharge Head & Check Valve</div>
-                  <div className="text-[10px] text-slate-400">Head: {selectedWell.dischargePressurePsi} psi</div>
-                </div>
-                <span className="text-[10px] font-mono text-blue-400">11,210 ft</span>
-              </div>
-
-              {/* Multi-stage Centrifugal Pump */}
-              <div className="p-2.5 rounded bg-slate-950/80 border border-cyan-800/50 flex items-center justify-between">
-                <div>
-                  <div className="font-semibold text-cyan-300 text-xs">Centrifugal Pump (182 Stages)</div>
-                  <div className="text-[10px] text-slate-400">Radial Flow Ni-Resist Impellers</div>
-                </div>
-                <span className="text-[10px] font-mono text-cyan-400">{vfdTrimHz} Hz</span>
-              </div>
-
-              {/* Gas Separator */}
-              <div className="p-2.5 rounded bg-slate-950/80 border border-slate-800 flex items-center justify-between">
-                <div>
-                  <div className="font-semibold text-slate-200 text-xs">Vortex Gas Separator</div>
-                  <div className="text-[10px] text-slate-400">Sep Efficiency: ~88%</div>
-                </div>
-                <span className="text-[10px] font-mono text-slate-400">Intake</span>
-              </div>
-
-              {/* Seal / Protector Chamber */}
-              <div className="p-2.5 rounded bg-slate-950/80 border border-slate-800 flex items-center justify-between">
-                <div>
-                  <div className="font-semibold text-slate-200 text-xs">Protector / Thrust Chamber</div>
-                  <div className="text-[10px] text-slate-400">High-load Kingsbury thrust bearing</div>
-                </div>
-                <span className="text-[10px] font-mono text-emerald-400">Barrier OK</span>
-              </div>
-
-              {/* Submersible Induction Motor */}
-              <div className="p-2.5 rounded bg-slate-950/80 border border-amber-900/50 flex items-center justify-between">
-                <div>
-                  <div className="font-semibold text-amber-300 text-xs">Downhole Motor (240 HP)</div>
-                  <div className="text-[10px] text-slate-400">3,850 V · {selectedWell.motorCurrentA} A · {selectedWell.motorTempF}°F</div>
-                </div>
-                <span className="text-[10px] font-mono text-amber-400">240 HP</span>
-              </div>
-
-              {/* Phoenix Downhole Gauge */}
-              <div className="p-2.5 rounded bg-slate-950/80 border border-emerald-900/50 flex items-center justify-between">
-                <div>
-                  <div className="font-semibold text-emerald-300 text-xs">Phoenix Downhole Sensor Pod</div>
-                  <div className="text-[10px] text-slate-400">P_intake, P_discharge, Temp, Vib</div>
-                </div>
-                <span className="text-[10px] font-mono text-emerald-400">Connected</span>
-              </div>
-
-            </div>
           </div>
 
-          <div className="pt-3 border-t border-slate-800 text-[11px] text-slate-400 flex items-center justify-between">
-            <span>Assembly Run Life:</span>
-            <span className="font-mono text-white font-semibold">{selectedWell.runLifeDays} Days On-Bottom</span>
-          </div>
-        </div>
+          {/* Active Alarm Alert Banner for Current Well (if any) */}
+          {wellAlarms.length > 0 && (
+            <div className="bg-rose-950/40 border border-rose-800 rounded-xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-lg animate-in fade-in">
+              <div className="flex items-start gap-3">
+                <ShieldAlert className="w-5 h-5 text-rose-400 shrink-0 mt-0.5" />
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-bold text-rose-300 font-mono uppercase">
+                      UNRESOLVED ALARM TRIP ({wellAlarms[0].severity})
+                    </span>
+                    <span className="text-[10px] text-slate-400 font-mono">{wellAlarms[0].id}</span>
+                  </div>
+                  <p className="text-xs text-white font-medium mt-0.5">{wellAlarms[0].title}</p>
+                  <p className="text-[11px] text-slate-300 mt-0.5">{wellAlarms[0].description}</p>
+                </div>
+              </div>
 
-      </div>
+              <button
+                onClick={() => handleAcknowledgeAlarm(wellAlarms[0].id)}
+                className="px-3.5 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-500 text-white text-xs font-semibold shadow shrink-0 transition-colors"
+              >
+                Acknowledge Alarm
+              </button>
+            </div>
+          )}
 
-      {/* Wellpad Information & Active Work Orders Strip */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        
-        {/* Well Specification Summary */}
-        <div className="bg-slate-900/90 border border-slate-800 rounded-xl p-4">
-          <div className="text-xs font-bold text-white mb-2 flex items-center justify-between">
-            <span>Wellbore Completion Specs</span>
-            <span className="text-[10px] font-mono text-cyan-400">{selectedWell.id}</span>
-          </div>
-          <div className="space-y-1.5 text-xs text-slate-300 font-mono">
-            <div className="flex justify-between py-1 border-b border-slate-800/80">
-              <span className="text-slate-400 font-sans">Basin / Formation:</span>
-              <span>{selectedWell.basin} · {selectedWell.field}</span>
+          {/* PART 6.2: 14 High-Density Operational KPI Cards */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-3">
+            {/* 1. Production */}
+            <div className="bg-slate-900/90 border border-slate-800 rounded-xl p-3">
+              <div className="text-[10px] text-slate-400 font-medium flex items-center justify-between">
+                <span>Production Rate</span>
+                <Flame className="w-3.5 h-3.5 text-cyan-400" />
+              </div>
+              <div className="text-lg font-bold text-white font-mono mt-1 tabular-nums">
+                {selectedWell.currentBopd > 0 ? selectedWell.currentBopd : '0'} <span className="text-[10px] text-slate-400">BPD</span>
+              </div>
+              <div className="text-[10px] text-slate-500 font-mono mt-0.5">Target: {selectedWell.targetBopd} BPD</div>
             </div>
-            <div className="flex justify-between py-1 border-b border-slate-800/80">
-              <span className="text-slate-400 font-sans">Total Measured Depth:</span>
-              <span>{selectedWell.totalDepthFt.toLocaleString()} ft MD</span>
-            </div>
-            <div className="flex justify-between py-1 border-b border-slate-800/80">
-              <span className="text-slate-400 font-sans">Casing / Tubing:</span>
-              <span>{selectedWell.casingSizeIn}" / {selectedWell.tubingSizeIn}"</span>
-            </div>
-            <div className="flex justify-between py-1 border-b border-slate-800/80">
-              <span className="text-slate-400 font-sans">Spud Date:</span>
-              <span>{selectedWell.spudDate}</span>
-            </div>
-            <div className="flex justify-between py-1">
-              <span className="text-slate-400 font-sans">Health Score:</span>
-              <span className="text-emerald-400 font-bold">{selectedWell.healthScore}/100</span>
-            </div>
-          </div>
-        </div>
 
-        {/* Assigned Field Crew / Jobs */}
-        <div className="lg:col-span-2 bg-slate-900/90 border border-slate-800 rounded-xl p-4">
-          <div className="flex items-center justify-between mb-3">
-            <div className="text-xs font-bold text-white flex items-center gap-2">
-              <Wrench className="w-3.5 h-3.5 text-cyan-400" />
-              <span>Assigned Field Work Orders ({wellJobs.length})</span>
+            {/* 2. Motor Current */}
+            <div className="bg-slate-900/90 border border-slate-800 rounded-xl p-3">
+              <div className="text-[10px] text-slate-400 font-medium flex items-center justify-between">
+                <span>Motor Current</span>
+                <Zap className="w-3.5 h-3.5 text-amber-400" />
+              </div>
+              <div className="text-lg font-bold text-white font-mono mt-1 tabular-nums">
+                {latestTelemetry?.motorCurrent ?? selectedWell.motorCurrentA} <span className="text-[10px] text-slate-400">A</span>
+              </div>
+              <div className="text-[10px] text-emerald-400 font-mono mt-0.5">Nominal: ~52 A</div>
             </div>
-            <button
-              onClick={() => onNavigateToRoute('workflows-user')}
-              className="text-xs text-cyan-400 hover:underline flex items-center gap-1"
-            >
-              <span>Work Order Center</span>
-              <ChevronRight className="w-3 h-3" />
-            </button>
+
+            {/* 3. VFD Frequency */}
+            <div className="bg-slate-900/90 border border-slate-800 rounded-xl p-3">
+              <div className="text-[10px] text-slate-400 font-medium flex items-center justify-between">
+                <span>VFD Frequency</span>
+                <Sliders className="w-3.5 h-3.5 text-cyan-400" />
+              </div>
+              <div className="text-lg font-bold text-cyan-300 font-mono mt-1 tabular-nums">
+                {vfdTrimHz.toFixed(1)} <span className="text-[10px] text-slate-400">Hz</span>
+              </div>
+              <div className="text-[10px] text-slate-500 font-mono mt-0.5">Setpoint: 58.5 Hz</div>
+            </div>
+
+            {/* 4. PIP */}
+            <div className="bg-slate-900/90 border border-slate-800 rounded-xl p-3">
+              <div className="text-[10px] text-slate-400 font-medium flex items-center justify-between">
+                <span>Intake Pressure (PIP)</span>
+                <Gauge className="w-3.5 h-3.5 text-blue-400" />
+              </div>
+              <div className="text-lg font-bold text-white font-mono mt-1 tabular-nums">
+                {latestTelemetry?.intakePressure ?? selectedWell.intakePressurePsi} <span className="text-[10px] text-slate-400">psi</span>
+              </div>
+              <div className="text-[10px] text-slate-500 font-mono mt-0.5">Min Envelope: 400</div>
+            </div>
+
+            {/* 5. Discharge Head */}
+            <div className="bg-slate-900/90 border border-slate-800 rounded-xl p-3">
+              <div className="text-[10px] text-slate-400 font-medium flex items-center justify-between">
+                <span>Discharge Head</span>
+                <Activity className="w-3.5 h-3.5 text-blue-400" />
+              </div>
+              <div className="text-lg font-bold text-white font-mono mt-1 tabular-nums">
+                {latestTelemetry?.dischargePressure ?? selectedWell.dischargePressurePsi} <span className="text-[10px] text-slate-400">psi</span>
+              </div>
+              <div className="text-[10px] text-blue-400 font-mono mt-0.5">182 Stages</div>
+            </div>
+
+            {/* 6. Motor Temp */}
+            <div className="bg-slate-900/90 border border-slate-800 rounded-xl p-3">
+              <div className="text-[10px] text-slate-400 font-medium flex items-center justify-between">
+                <span>Motor Temp</span>
+                <Thermometer className="w-3.5 h-3.5 text-rose-400" />
+              </div>
+              <div className={`text-lg font-bold font-mono mt-1 tabular-nums ${
+                (latestTelemetry?.motorTemp ?? selectedWell.motorTempF) > 225 ? 'text-rose-400' : 'text-white'
+              }`}>
+                {latestTelemetry?.motorTemp ?? selectedWell.motorTempF} <span className="text-[10px] text-slate-400">°F</span>
+              </div>
+              <div className="text-[10px] text-slate-500 font-mono mt-0.5">Trip Limit: 250°F</div>
+            </div>
+
+            {/* 7. Vibration */}
+            <div className="bg-slate-900/90 border border-slate-800 rounded-xl p-3">
+              <div className="text-[10px] text-slate-400 font-medium flex items-center justify-between">
+                <span>Vibration (RMS)</span>
+                <Activity className="w-3.5 h-3.5 text-amber-400" />
+              </div>
+              <div className="text-lg font-bold text-white font-mono mt-1 tabular-nums">
+                {latestTelemetry?.vibration ?? selectedWell.vibrationG} <span className="text-[10px] text-slate-400">G</span>
+              </div>
+              <div className="text-[10px] text-emerald-400 font-mono mt-0.5">&lt; 0.50 G Normal</div>
+            </div>
+
+            {/* 8. Power Kw */}
+            <div className="bg-slate-900/90 border border-slate-800 rounded-xl p-3">
+              <div className="text-[10px] text-slate-400 font-medium flex items-center justify-between">
+                <span>Power Demand</span>
+                <Zap className="w-3.5 h-3.5 text-cyan-400" />
+              </div>
+              <div className="text-lg font-bold text-white font-mono mt-1 tabular-nums">
+                {selectedWell.powerKw || 'N/A'} <span className="text-[10px] text-slate-400">kW</span>
+              </div>
+              <div className="text-[10px] text-slate-500 font-mono mt-0.5">240 HP Rating</div>
+            </div>
+
+            {/* 9. A-Annulus Pressure */}
+            <div className="bg-slate-900/90 border border-slate-800 rounded-xl p-3">
+              <div className="text-[10px] text-slate-400 font-medium flex items-center justify-between">
+                <span>A-Annulus P</span>
+                <Compass className="w-3.5 h-3.5 text-slate-400" />
+              </div>
+              <div className="text-lg font-bold text-white font-mono mt-1 tabular-nums">
+                {selectedWell.aAnnulusPressureKgCm2 !== undefined ? `${selectedWell.aAnnulusPressureKgCm2}` : '50.2'} <span className="text-[10px] text-slate-400">kg/cm²</span>
+              </div>
+              <div className="text-[10px] text-emerald-400 font-mono mt-0.5">Sealed Casing</div>
+            </div>
+
+            {/* 10. B-Annulus Pressure */}
+            <div className="bg-slate-900/90 border border-slate-800 rounded-xl p-3">
+              <div className="text-[10px] text-slate-400 font-medium flex items-center justify-between">
+                <span>B-Annulus P</span>
+                <Compass className="w-3.5 h-3.5 text-slate-400" />
+              </div>
+              <div className="text-lg font-bold text-white font-mono mt-1 tabular-nums">
+                {selectedWell.bAnnulusPressureKgCm2 !== undefined ? `${selectedWell.bAnnulusPressureKgCm2}` : '0.0'} <span className="text-[10px] text-slate-400">kg/cm²</span>
+              </div>
+              <div className="text-[10px] text-slate-500 font-mono mt-0.5">Surface Vent</div>
+            </div>
+
+            {/* 11. Flowline Pressure */}
+            <div className="bg-slate-900/90 border border-slate-800 rounded-xl p-3">
+              <div className="text-[10px] text-slate-400 font-medium flex items-center justify-between">
+                <span>Flowline Press</span>
+                <Gauge className="w-3.5 h-3.5 text-slate-400" />
+              </div>
+              <div className="text-lg font-bold text-white font-mono mt-1 tabular-nums">
+                {selectedWell.flowlinePressureKgCm2 !== undefined ? `${selectedWell.flowlinePressureKgCm2}` : '8.13'} <span className="text-[10px] text-slate-400">kg/cm²</span>
+              </div>
+              <div className="text-[10px] text-slate-500 font-mono mt-0.5">Manifold Header</div>
+            </div>
+
+            {/* 12. Flowline Temp */}
+            <div className="bg-slate-900/90 border border-slate-800 rounded-xl p-3">
+              <div className="text-[10px] text-slate-400 font-medium flex items-center justify-between">
+                <span>Flowline Temp</span>
+                <Thermometer className="w-3.5 h-3.5 text-amber-400" />
+              </div>
+              <div className="text-lg font-bold text-white font-mono mt-1 tabular-nums">
+                {selectedWell.flowlineTempC !== undefined ? `${selectedWell.flowlineTempC}` : '45.4'} <span className="text-[10px] text-slate-400">°C</span>
+              </div>
+              <div className="text-[10px] text-slate-500 font-mono mt-0.5">~118°F Surface</div>
+            </div>
+
+            {/* 13. RTU Battery */}
+            <div className="bg-slate-900/90 border border-slate-800 rounded-xl p-3">
+              <div className="text-[10px] text-slate-400 font-medium flex items-center justify-between">
+                <span>RTU Battery</span>
+                <Battery className="w-3.5 h-3.5 text-emerald-400" />
+              </div>
+              <div className="text-lg font-bold text-emerald-400 font-mono mt-1 tabular-nums">
+                {selectedWell.batteryVoltage !== undefined ? `${selectedWell.batteryVoltage} V` : '3.7 V'}
+              </div>
+              <div className="text-[10px] text-emerald-400 font-mono mt-0.5">Nominal Charge</div>
+            </div>
+
+            {/* 14. ESP Health Score */}
+            <div className="bg-slate-900/90 border border-slate-800 rounded-xl p-3">
+              <div className="text-[10px] text-slate-400 font-medium flex items-center justify-between">
+                <span>ESP Health</span>
+                <Activity className="w-3.5 h-3.5 text-cyan-400" />
+              </div>
+              <div className="text-lg font-bold text-cyan-300 font-mono mt-1 tabular-nums">
+                {selectedWell.healthScore}<span className="text-xs font-normal">/100</span>
+              </div>
+              <div className="text-[10px] text-cyan-400 font-mono mt-0.5">AI RunLife Score</div>
+            </div>
           </div>
 
-          {wellJobs.length > 0 ? (
-            <div className="space-y-2">
-              {wellJobs.map(job => (
-                <div key={job.id} className="p-3 rounded-lg bg-slate-950/60 border border-slate-800 flex items-center justify-between text-xs">
+          {/* PART 6.3: Real-Time Telemetry Trend Chart & Time Range Selector */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            <div className="lg:col-span-8 bg-slate-900/90 border border-slate-800 rounded-xl p-5 flex flex-col justify-between shadow-sm">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-4">
+                <div>
+                  <h3 className="text-sm font-bold text-white tracking-tight flex items-center gap-2">
+                    <Activity className="w-4 h-4 text-cyan-400" />
+                    <span>Real-Time Multi-Parameter Sensor Telemetry</span>
+                  </h3>
+                  <p className="text-[11px] text-slate-400">
+                    Synchronized downhole sensor stream (Phoenix RTD &amp; Triaxial Gauge).
+                  </p>
+                </div>
+
+                {/* Time Range Selector */}
+                <div className="flex items-center gap-1 bg-slate-950 p-1 rounded-lg border border-slate-800 text-[11px] font-mono">
+                  {(['15m', '1h', '6h', '12h', '24h'] as const).map(tr => (
+                    <button
+                      key={tr}
+                      onClick={() => setChartTimeRange(tr)}
+                      className={`px-2.5 py-1 rounded transition-colors ${
+                        chartTimeRange === tr
+                          ? 'bg-cyan-500/20 text-cyan-300 font-bold border border-cyan-500/40'
+                          : 'text-slate-400 hover:text-white'
+                      }`}
+                    >
+                      {tr}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="h-64 w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={telemetry} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
+                    <XAxis dataKey="time" stroke="#64748b" tick={{ fontSize: 10 }} />
+                    <YAxis yAxisId="left" stroke="#64748b" tick={{ fontSize: 10 }} domain={['dataMin - 50', 'dataMax + 50']} />
+                    <YAxis yAxisId="right" orientation="right" stroke="#64748b" tick={{ fontSize: 10 }} domain={[40, 70]} />
+                    <Tooltip 
+                      contentStyle={{ backgroundColor: '#090d16', borderColor: '#334155', borderRadius: '8px', fontSize: '11px', fontFamily: 'monospace' }} 
+                    />
+                    <Legend wrapperStyle={{ fontSize: '11px', paddingTop: '10px' }} />
+                    <Line yAxisId="left" type="monotone" dataKey="intakePressure" name="Intake P (psi)" stroke="#06b6d4" strokeWidth={2} dot={false} isAnimationActive={false} />
+                    <Line yAxisId="left" type="monotone" dataKey="dischargePressure" name="Discharge P (psi)" stroke="#3b82f6" strokeWidth={2} dot={false} isAnimationActive={false} />
+                    <Line yAxisId="right" type="monotone" dataKey="motorCurrent" name="Current (A)" stroke="#f59e0b" strokeWidth={2} dot={false} isAnimationActive={false} />
+                    <Line yAxisId="right" type="monotone" dataKey="frequency" name="VFD (Hz)" stroke="#10b981" strokeWidth={1.5} strokeDasharray="4 4" dot={false} isAnimationActive={false} />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+
+              {/* VFD Speed Optimization Control Bar */}
+              <div className="mt-4 pt-3 border-t border-slate-800 bg-slate-950/70 rounded-lg p-3">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <div>
-                    <div className="flex items-center gap-2">
-                      <span className="font-semibold text-white">{job.title}</span>
-                      <span className="px-1.5 py-0.2 rounded text-[10px] bg-cyan-950 text-cyan-300 border border-cyan-800 font-mono">
-                        {job.status}
-                      </span>
+                    <div className="text-xs font-bold text-white flex items-center gap-2">
+                      <Sliders className="w-4 h-4 text-cyan-400" />
+                      <span>VFD Speed Optimization Setpoint</span>
                     </div>
-                    <div className="text-[11px] text-slate-400 mt-0.5">
-                      Assigned: {job.assignedCrew} · Est: {job.estimatedHours} hrs · Vehicle: {job.assignedVehicleId || 'N/A'}
+                    <div className="text-[10px] text-slate-400 mt-0.5">
+                      Adjust motor drive frequency to regulate fluid drawdown and dynamic level.
                     </div>
                   </div>
-                  <button 
-                    onClick={() => onNavigateToRoute('workflows-user')}
-                    className="px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs"
-                  >
-                    Details
-                  </button>
+
+                  <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => setVfdTrimHz(prev => Math.max(45, Math.round((prev - 0.5) * 10) / 10))}
+                        className="w-7 h-7 rounded bg-slate-800 hover:bg-slate-700 text-white font-mono text-xs flex items-center justify-center font-bold"
+                      >
+                        -
+                      </button>
+                      <div className="px-3 py-1 rounded bg-slate-900 border border-slate-700 font-mono text-sm font-bold text-cyan-400 tabular-nums">
+                        {vfdTrimHz.toFixed(1)} Hz
+                      </div>
+                      <button
+                        onClick={() => setVfdTrimHz(prev => Math.min(65, Math.round((prev + 0.5) * 10) / 10))}
+                        className="w-7 h-7 rounded bg-slate-800 hover:bg-slate-700 text-white font-mono text-xs flex items-center justify-center font-bold"
+                      >
+                        +
+                      </button>
+                    </div>
+
+                    <button
+                      onClick={handleApplyVfdTrim}
+                      className="px-3.5 py-1.5 rounded bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-semibold shadow-sm transition-colors"
+                    >
+                      Apply Trim
+                    </button>
+                  </div>
                 </div>
-              ))}
+              </div>
             </div>
-          ) : (
-            <div className="p-6 text-center text-xs text-slate-500 bg-slate-950/40 rounded-lg border border-slate-800/60">
-              No active work orders dispatched for this wellsite. Equipment operating in autonomous surveillance mode.
+
+            {/* Downhole ESP Assembly Schematic (4 cols) */}
+            <div className="lg:col-span-4 bg-slate-900/90 border border-slate-800 rounded-xl p-5 flex flex-col justify-between shadow-sm">
+              <div>
+                <div className="flex items-center justify-between border-b border-slate-800 pb-2 mb-3">
+                  <h3 className="text-sm font-bold text-white tracking-tight flex items-center gap-2">
+                    <Layers className="w-4 h-4 text-cyan-400" />
+                    <span>Downhole ESP Assembly</span>
+                  </h3>
+                  <span className="text-[10px] font-mono text-slate-400">
+                    Depth: {selectedWell.totalDepthFt.toLocaleString()} ft
+                  </span>
+                </div>
+
+                <div className="space-y-2 py-1 text-xs">
+                  <div className="p-2 rounded bg-slate-950/80 border border-slate-800 flex items-center justify-between">
+                    <div>
+                      <div className="font-semibold text-slate-200 text-xs">Surface Wellhead & Tree</div>
+                      <div className="text-[10px] text-slate-400">Flowline Temp: {selectedWell.wellheadTempF}°F</div>
+                    </div>
+                    <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-emerald-950 text-emerald-300">Surface</span>
+                  </div>
+
+                  <div className="text-center font-mono text-[10px] text-slate-600 py-0.5">
+                    ↓ 2-7/8" L-80 Production Tubing String ↓
+                  </div>
+
+                  <div className="p-2 rounded bg-slate-950/80 border border-blue-900/40 flex items-center justify-between">
+                    <div>
+                      <div className="font-semibold text-blue-300 text-xs">Discharge Head & Check Valve</div>
+                      <div className="text-[10px] text-slate-400">Head: {selectedWell.dischargePressurePsi} psi</div>
+                    </div>
+                    <span className="text-[10px] font-mono text-blue-400">11,210 ft</span>
+                  </div>
+
+                  <div className="p-2 rounded bg-slate-950/80 border border-cyan-800/50 flex items-center justify-between">
+                    <div>
+                      <div className="font-semibold text-cyan-300 text-xs">Centrifugal Pump (182 Stages)</div>
+                      <div className="text-[10px] text-slate-400">Ni-Resist Radial Impellers</div>
+                    </div>
+                    <span className="text-[10px] font-mono text-cyan-400">{vfdTrimHz.toFixed(1)} Hz</span>
+                  </div>
+
+                  <div className="p-2 rounded bg-slate-950/80 border border-amber-900/50 flex items-center justify-between">
+                    <div>
+                      <div className="font-semibold text-amber-300 text-xs">Submersible Motor (240 HP)</div>
+                      <div className="text-[10px] text-slate-400">3,850 V · {selectedWell.motorCurrentA} A · {selectedWell.motorTempF}°F</div>
+                    </div>
+                    <span className="text-[10px] font-mono text-amber-400">240 HP</span>
+                  </div>
+
+                  <div className="p-2 rounded bg-slate-950/80 border border-emerald-900/50 flex items-center justify-between">
+                    <div>
+                      <div className="font-semibold text-emerald-300 text-xs">Phoenix Downhole Gauge Pod</div>
+                      <div className="text-[10px] text-slate-400">P_intake, P_discharge, Temp, Vib</div>
+                    </div>
+                    <span className="text-[10px] font-mono text-emerald-400">Connected</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="pt-3 border-t border-slate-800 text-[11px] text-slate-400 flex items-center justify-between">
+                <span>Assembly Run Life:</span>
+                <span className="font-mono text-white font-semibold">{selectedWell.runLifeDays} Days On-Bottom</span>
+              </div>
+            </div>
+          </div>
+
+          {/* PART 6.4 & 6.5: Asset-Specific Alarm Table & Event History */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Asset-Specific Alarms */}
+            <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden shadow-sm">
+              <div className="p-4 border-b border-slate-800 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <ShieldAlert className="w-4 h-4 text-rose-400" />
+                  <h4 className="text-xs font-bold text-white uppercase tracking-wider font-mono">
+                    Asset Alarms ({wellAlarms.length})
+                  </h4>
+                </div>
+                <button
+                  onClick={() => onNavigateToRoute('alarms-user')}
+                  className="text-xs text-cyan-400 hover:underline"
+                >
+                  View in Alarm Center →
+                </button>
+              </div>
+
+              <div className="divide-y divide-slate-800 max-h-60 overflow-y-auto">
+                {wellAlarms.length === 0 ? (
+                  <div className="p-6 text-center text-xs text-slate-500">
+                    No active unresolved alarms for this asset. Operating within safe limits.
+                  </div>
+                ) : (
+                  wellAlarms.map(alarm => (
+                    <div key={alarm.id} className="p-3 hover:bg-slate-800/40 transition-colors text-xs space-y-1">
+                      <div className="flex items-center justify-between font-mono">
+                        <span className="text-rose-400 font-bold">{alarm.id}</span>
+                        <span className="px-1.5 py-0.2 rounded text-[10px] bg-rose-950 text-rose-300 border border-rose-800">
+                          {alarm.severity}
+                        </span>
+                      </div>
+                      <div className="font-semibold text-white">{alarm.title}</div>
+                      <div className="text-[11px] text-slate-400 flex items-center justify-between font-mono pt-1">
+                        <span>Current: <strong className="text-white">{alarm.currentValue}</strong></span>
+                        <button
+                          onClick={() => handleAcknowledgeAlarm(alarm.id)}
+                          className="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-cyan-300 font-sans text-[10px]"
+                        >
+                          Acknowledge
+                        </button>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+
+            {/* Asset-Specific Event History (PART 6.5) */}
+            <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden shadow-sm">
+              <div className="p-4 border-b border-slate-800 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Clock className="w-4 h-4 text-cyan-400" />
+                  <h4 className="text-xs font-bold text-white uppercase tracking-wider font-mono">
+                    Operational Event Log
+                  </h4>
+                </div>
+                <span className="text-[10px] font-mono text-slate-400">Autonomous & Manual</span>
+              </div>
+
+              <div className="divide-y divide-slate-800 max-h-60 overflow-y-auto">
+                {wellEvents.length === 0 ? (
+                  <div className="p-4 text-xs text-slate-400 space-y-2">
+                    <div className="p-2.5 rounded bg-slate-950/60 border border-slate-800 text-[11px]">
+                      <div className="font-semibold text-white">VFD Frequency Trim Applied</div>
+                      <div className="text-slate-400 text-[10px] font-mono mt-0.5">2026-10-28 06:05 UTC · System Operator</div>
+                      <p className="text-slate-300 mt-1">Speed adjusted to {vfdTrimHz} Hz to regulate dynamic fluid level.</p>
+                    </div>
+                    <div className="p-2.5 rounded bg-slate-950/60 border border-slate-800 text-[11px]">
+                      <div className="font-semibold text-white">Periodic Telemetry Handshake</div>
+                      <div className="text-slate-400 text-[10px] font-mono mt-0.5">2026-10-28 05:00 UTC · Phoenix RTU</div>
+                      <p className="text-slate-300 mt-1">Downhole gauge registers synchronized with zero packet loss.</p>
+                    </div>
+                  </div>
+                ) : (
+                  wellEvents.map(evt => (
+                    <div key={evt.id} className="p-3 hover:bg-slate-800/40 transition-colors text-xs space-y-1">
+                      <div className="flex items-center justify-between font-mono text-[10px]">
+                        <span className="text-cyan-400 font-bold">{evt.eventType}</span>
+                        <span className="text-slate-500">{evt.timestamp}</span>
+                      </div>
+                      <p className="text-slate-200">{evt.description}</p>
+                      <div className="text-[10px] text-slate-500">Authorized: {evt.user}</div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : (
+        /* ======================================================== */
+        /* CASE 2: ALL ASSETS FLEET OPERATIONAL VIEW (PART 6.6 & 7) */
+        /* ======================================================== */
+        <div className="space-y-6">
+          {/* Sub-tab Navigation */}
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-800 pb-3">
+            <div className="flex items-center gap-2 bg-slate-900 p-1 rounded-xl border border-slate-800">
+              <button
+                onClick={() => setAllAssetsTab('fleet-overview')}
+                className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-2 transition-all ${
+                  allAssetsTab === 'fleet-overview'
+                    ? 'bg-cyan-500 text-slate-950 shadow-md font-bold'
+                    : 'text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                <Layers className="w-3.5 h-3.5" />
+                <span>All Assets Operational Fleet</span>
+              </button>
+
+              <button
+                onClick={() => setAllAssetsTab('wells-down-24h')}
+                className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-2 transition-all ${
+                  allAssetsTab === 'wells-down-24h'
+                    ? 'bg-cyan-500 text-slate-950 shadow-md font-bold'
+                    : 'text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                <AlertTriangle className="w-3.5 h-3.5" />
+                <span>Wells Down (24H)</span>
+                <span className="px-1.5 py-0.2 rounded text-[10px] bg-rose-500/20 text-rose-300 font-mono">13 Down</span>
+              </button>
+
+              <button
+                onClick={() => setAllAssetsTab('summary-24h')}
+                className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-2 transition-all ${
+                  allAssetsTab === 'summary-24h'
+                    ? 'bg-cyan-500 text-slate-950 shadow-md font-bold'
+                    : 'text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                <Clock className="w-3.5 h-3.5" />
+                <span>24-Hour Operational Summary</span>
+              </button>
+            </div>
+
+            <span className="text-[11px] font-mono text-slate-400 bg-slate-900 border border-slate-800 px-3 py-1 rounded-lg">
+              Fleet Units: <strong className="text-white">{wellsList.length} Wells</strong>
+            </span>
+          </div>
+
+          {allAssetsTab === 'fleet-overview' && (
+            <>
+              {/* 6 Hero Operational KPI Cards (PART 7) */}
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+                <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 text-center">
+                  <span className="text-xs text-slate-400 block font-mono">Total Monitored</span>
+                  <span className="text-3xl font-extrabold font-mono text-white mt-1 block">{wellsList.length}</span>
+                  <span className="text-[10px] text-cyan-400 font-mono">Permian & Eagle Ford</span>
+                </div>
+
+                <div className="bg-slate-900 border border-emerald-900/60 bg-emerald-950/20 rounded-xl p-4 text-center">
+                  <span className="text-xs text-emerald-300 block font-mono">Running Wells</span>
+                  <span className="text-3xl font-extrabold font-mono text-emerald-400 mt-1 block">{runningCount}</span>
+                  <span className="text-[10px] text-emerald-400 font-mono">Normal Operations</span>
+                </div>
+
+                <div className="bg-slate-900 border border-rose-900/60 bg-rose-950/20 rounded-xl p-4 text-center">
+                  <span className="text-xs text-rose-300 block font-mono">Wells Down</span>
+                  <span className="text-3xl font-extrabold font-mono text-rose-400 mt-1 block">{downCount}</span>
+                  <span className="text-[10px] text-rose-400 font-mono">Requiring Action</span>
+                </div>
+
+                <div className="bg-slate-900 border border-amber-900/60 bg-amber-950/20 rounded-xl p-4 text-center">
+                  <span className="text-xs text-amber-300 block font-mono">Warning / Threat</span>
+                  <span className="text-3xl font-extrabold font-mono text-amber-400 mt-1 block">{warningCount}</span>
+                  <span className="text-[10px] text-amber-400 font-mono">Thermal / Vibration</span>
+                </div>
+
+                <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 text-center">
+                  <span className="text-xs text-slate-400 block font-mono">Total Production</span>
+                  <span className="text-3xl font-extrabold font-mono text-cyan-300 mt-1 block">
+                    {totalProductionBpd.toLocaleString()}
+                  </span>
+                  <span className="text-[10px] text-slate-400 font-mono">BPD Gross Fluid</span>
+                </div>
+
+                <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 text-center">
+                  <span className="text-xs text-slate-400 block font-mono">Average Health</span>
+                  <span className="text-3xl font-extrabold font-mono text-emerald-400 mt-1 block">
+                    {avgHealth}%
+                  </span>
+                  <span className="text-[10px] text-emerald-400 font-mono">Reliability Index</span>
+                </div>
+              </div>
+
+              {/* Fleet Production Trend Chart & Status Breakdown */}
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                <div className="lg:col-span-8 bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-sm">
+                  <div className="flex items-center justify-between mb-4">
+                    <div>
+                      <h4 className="text-sm font-bold text-white flex items-center gap-2">
+                        <TrendingUp className="w-4 h-4 text-cyan-400" />
+                        <span>Fleet Production Volume Trend (Last 7 Days)</span>
+                      </h4>
+                      <p className="text-xs text-slate-400">Total crude production across ESP, Rod Pump, PCP, and Gas Lift pad assets.</p>
+                    </div>
+                  </div>
+
+                  <div className="h-60 w-full">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={FLEET_PRODUCTION_TREND} margin={{ top: 5, right: 10, left: -10, bottom: 0 }}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
+                        <XAxis dataKey="date" stroke="#64748b" tick={{ fontSize: 10 }} />
+                        <YAxis stroke="#64748b" tick={{ fontSize: 10 }} />
+                        <Tooltip contentStyle={{ backgroundColor: '#090d16', borderColor: '#334155', borderRadius: '8px', fontSize: '11px', fontFamily: 'monospace' }} />
+                        <Legend wrapperStyle={{ fontSize: '11px', paddingTop: '10px' }} />
+                        <Bar dataKey="espBopd" name="ESP Production (BPD)" fill="#06b6d4" />
+                        <Bar dataKey="rodPumpBopd" name="Rod Pump (BPD)" fill="#3b82f6" />
+                        <Bar dataKey="gasLiftBopd" name="Gas Lift (BPD)" fill="#10b981" />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
+
+                {/* Status Distribution Donut / Progress Breakdown */}
+                <div className="lg:col-span-4 bg-slate-900 border border-slate-800 rounded-xl p-5 flex flex-col justify-between shadow-sm">
+                  <div>
+                    <h4 className="text-sm font-bold text-white flex items-center gap-2 mb-3">
+                      <Radio className="w-4 h-4 text-cyan-400" />
+                      <span>Operational Status Distribution</span>
+                    </h4>
+
+                    <div className="space-y-4 py-2">
+                      <div>
+                        <div className="flex justify-between text-xs font-mono mb-1">
+                          <span className="text-emerald-400">Running Nominally</span>
+                          <span className="text-white font-bold">{runningCount} / {wellsList.length}</span>
+                        </div>
+                        <div className="h-2 w-full bg-slate-800 rounded-full overflow-hidden">
+                          <div className="h-full bg-emerald-500 rounded-full" style={{ width: `${(runningCount / wellsList.length) * 100}%` }} />
+                        </div>
+                      </div>
+
+                      <div>
+                        <div className="flex justify-between text-xs font-mono mb-1">
+                          <span className="text-rose-400">Offline / Down</span>
+                          <span className="text-white font-bold">{downCount} / {wellsList.length}</span>
+                        </div>
+                        <div className="h-2 w-full bg-slate-800 rounded-full overflow-hidden">
+                          <div className="h-full bg-rose-500 rounded-full" style={{ width: `${(downCount / wellsList.length) * 100}%` }} />
+                        </div>
+                      </div>
+
+                      <div>
+                        <div className="flex justify-between text-xs font-mono mb-1">
+                          <span className="text-amber-400">Warning / Tripped</span>
+                          <span className="text-white font-bold">{warningCount} / {wellsList.length}</span>
+                        </div>
+                        <div className="h-2 w-full bg-slate-800 rounded-full overflow-hidden">
+                          <div className="h-full bg-amber-500 rounded-full" style={{ width: `${(warningCount / wellsList.length) * 100}%` }} />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="pt-3 border-t border-slate-800 text-[11px] text-slate-400 flex items-center justify-between">
+                    <span>Overall Fleet Uptime:</span>
+                    <span className="font-mono text-emerald-400 font-bold">
+                      {Math.round((runningCount / wellsList.length) * 100)}% Nominal
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Complete Interactive All Assets Table (PART 8) */}
+              <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden shadow-sm">
+                <div className="p-4 border-b border-slate-800 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+                  <div className="relative w-full max-w-sm">
+                    <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                    <input
+                      type="text"
+                      value={tableSearchTerm}
+                      onChange={(e) => setTableSearchTerm(e.target.value)}
+                      placeholder="Search short name, pad, or formation..."
+                      className="w-full bg-slate-950 border border-slate-700 rounded-md pl-9 pr-3 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 font-sans"
+                    />
+                  </div>
+
+                  {/* Filter Pills */}
+                  <div className="flex items-center gap-1.5 bg-slate-950 p-1 rounded-lg border border-slate-800 text-xs">
+                    {(['ALL', 'RUNNING', 'DOWN', 'WARNING'] as const).map(f => (
+                      <button
+                        key={f}
+                        onClick={() => setStatusFilter(f)}
+                        className={`px-3 py-1 rounded transition-colors ${
+                          statusFilter === f 
+                            ? 'bg-cyan-500/20 text-cyan-300 font-bold border border-cyan-500/40' 
+                            : 'text-slate-400 hover:text-white'
+                        }`}
+                      >
+                        {f}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="overflow-x-auto">
+                  <table className="w-full text-xs text-left">
+                    <thead className="bg-slate-950 text-slate-400 font-mono text-[11px] uppercase border-b border-slate-800">
+                      <tr>
+                        <th className="px-4 py-3">Asset Short Name</th>
+                        <th className="px-4 py-3">Full Well Name</th>
+                        <th className="px-4 py-3">Basin & Pad</th>
+                        <th className="px-4 py-3">Status</th>
+                        <th className="px-4 py-3 text-right">Production (BPD)</th>
+                        <th className="px-4 py-3 text-right">PIP (psi)</th>
+                        <th className="px-4 py-3 text-right">Motor Temp</th>
+                        <th className="px-4 py-3 text-center">Health</th>
+                        <th className="px-4 py-3 text-right">Cockpit Action</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-800 text-slate-200 font-mono">
+                      {filteredWells.map(well => {
+                        const isRunning = well.status === 'Nominal' || well.status === 'Testing';
+                        const isDown = well.status === 'Offline' || well.status === 'Critical';
+                        const isWarn = well.status === 'Warning';
+                        const shortName = well.wellCode || well.id;
+
+                        return (
+                          <tr key={well.id} className="hover:bg-slate-800/40 transition-colors">
+                            <td className="px-4 py-3 font-bold text-cyan-300 font-mono">
+                              {shortName}
+                            </td>
+                            <td className="px-4 py-3 font-sans font-semibold text-white">
+                              {well.name}
+                            </td>
+                            <td className="px-4 py-3 font-sans text-slate-400">
+                              <div>{well.basin}</div>
+                              <div className="text-[10px] text-slate-500 font-mono">{well.padName}</div>
+                            </td>
+                            <td className="px-4 py-3">
+                              {isRunning && (
+                                <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[11px] font-sans font-medium bg-emerald-950/70 text-emerald-300 border border-emerald-800">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                                  <span>Running</span>
+                                </span>
+                              )}
+                              {isDown && (
+                                <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[11px] font-sans font-medium bg-rose-950/70 text-rose-300 border border-rose-800">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
+                                  <span>Down</span>
+                                </span>
+                              )}
+                              {isWarn && (
+                                <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[11px] font-sans font-medium bg-amber-950/70 text-amber-300 border border-amber-800">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
+                                  <span>Warning</span>
+                                </span>
+                              )}
+                            </td>
+                            <td className="px-4 py-3 text-right font-bold text-white">
+                              {well.currentBopd > 0 ? `${well.currentBopd} BPD` : '0'}
+                            </td>
+                            <td className="px-4 py-3 text-right text-slate-300">
+                              {well.intakePressurePsi} psi
+                            </td>
+                            <td className="px-4 py-3 text-right text-slate-300">
+                              {well.motorTempF}°F
+                            </td>
+                            <td className="px-4 py-3 text-center">
+                              <span className="font-bold text-cyan-400">{well.healthScore}%</span>
+                            </td>
+                            <td className="px-4 py-3 text-right font-sans">
+                              <button
+                                onClick={() => handleSelectAsset(well.id)}
+                                className="px-3 py-1 rounded bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-semibold shadow-sm transition-colors"
+                              >
+                                View Cockpit →
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </>
+          )}
+
+          {/* Slide 25 Wells Down within 24 Hrs */}
+          {allAssetsTab === 'wells-down-24h' && (
+            <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden shadow-xl">
+              <div className="p-4 border-b border-slate-800 flex items-center justify-between">
+                <div>
+                  <h3 className="text-sm font-bold text-white uppercase tracking-wider font-mono flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse" />
+                    Wells Down within 24 Hrs.
+                  </h3>
+                  <p className="text-xs text-slate-400">Direct downhole trips, VFD fault reasons, and historical shutdown timestamps.</p>
+                </div>
+                <span className="text-xs font-mono text-rose-400 font-semibold">13 Recorded Incidents</span>
+              </div>
+
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs text-left">
+                  <thead className="bg-slate-950 text-slate-400 font-mono text-[11px] uppercase border-b border-slate-800">
+                    <tr>
+                      <th className="px-3 py-2.5">Well Short Name</th>
+                      <th className="px-3 py-2.5">Manufacturer</th>
+                      <th className="px-3 py-2.5 text-center">Status</th>
+                      <th className="px-3 py-2.5 text-right">Freq. (Hz)</th>
+                      <th className="px-3 py-2.5">Op. Mode</th>
+                      <th className="px-3 py-2.5 text-right">PIP (psi)</th>
+                      <th className="px-3 py-2.5 text-right">Motor Temp °F</th>
+                      <th className="px-3 py-2.5">Shutdown Cause</th>
+                      <th className="px-3 py-2.5 font-mono">Shutdown Time</th>
+                      <th className="px-3 py-2.5 text-center">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-800 font-mono text-slate-200">
+                    {WELLS_DOWN_24H_DATA.map((row, idx) => (
+                      <tr key={idx} className="hover:bg-slate-800/40 transition-colors">
+                        <td className="px-3 py-2.5 font-sans font-bold text-cyan-300">{row.well}</td>
+                        <td className="px-3 py-2.5 text-slate-300">{row.manufacturer}</td>
+                        <td className="px-3 py-2.5 text-center">
+                          <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-rose-950 text-rose-300 border border-rose-800">
+                            {row.status}
+                          </span>
+                        </td>
+                        <td className="px-3 py-2.5 text-right text-slate-400">{row.freqHz}</td>
+                        <td className="px-3 py-2.5 text-slate-300">{row.opMode}</td>
+                        <td className="px-3 py-2.5 text-right font-bold text-white">{row.pipPsi}</td>
+                        <td className="px-3 py-2.5 text-right text-slate-300">{row.motorTempF || '—'}</td>
+                        <td className="px-3 py-2.5 text-rose-300 font-sans max-w-xs truncate" title={row.shutdownCause}>
+                          {row.shutdownCause}
+                        </td>
+                        <td className="px-3 py-2.5 text-slate-400 text-[11px] whitespace-nowrap">{row.shutdownTime}</td>
+                        <td className="px-3 py-2.5 text-center">
+                          <button
+                            onClick={() => handleSelectAsset(row.well)}
+                            className="px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-cyan-400 text-[10px] font-sans font-semibold transition-colors"
+                          >
+                            Diagnose
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {/* Slide 26 24-Hour Status Summary */}
+          {allAssetsTab === 'summary-24h' && (
+            <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden shadow-xl">
+              <div className="p-4 border-b border-slate-800 flex items-center justify-between">
+                <div>
+                  <h3 className="text-sm font-bold text-white uppercase tracking-wider font-mono flex items-center gap-2">
+                    <Clock className="w-4 h-4 text-cyan-400" />
+                    Wells with Alerts &amp; 24-Hour Cycle Activity
+                  </h3>
+                  <p className="text-xs text-slate-400">Detailed cycle counts, downtime accumulation, and run-life telemetry.</p>
+                </div>
+              </div>
+
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs text-left">
+                  <thead className="bg-slate-950 text-slate-400 font-mono text-[11px] uppercase border-b border-slate-800">
+                    <tr>
+                      <th className="px-4 py-2.5">Well Short Name</th>
+                      <th className="px-4 py-2.5">Status</th>
+                      <th className="px-4 py-2.5 text-right">Runlife (days)</th>
+                      <th className="px-4 py-2.5 text-right">Freq. (Hz)</th>
+                      <th className="px-4 py-2.5">Operation Mode</th>
+                      <th className="px-4 py-2.5 text-right">Motor Current (A)</th>
+                      <th className="px-4 py-2.5 text-right">Motor Temp. (°F)</th>
+                      <th className="px-4 py-2.5">Last Shutdown</th>
+                      <th className="px-4 py-2.5 text-center">Cycle times</th>
+                      <th className="px-4 py-2.5 text-right">Downtime (hrs)</th>
+                      <th className="px-4 py-2.5 font-mono">Last Communication</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-800 font-mono text-slate-200">
+                    {STATUS_SUMMARY_24H_DATA.map((row, idx) => (
+                      <tr key={idx} className="hover:bg-slate-800/40 transition-colors">
+                        <td className="px-4 py-2.5 font-sans font-bold text-cyan-300">{row.well}</td>
+                        <td className="px-4 py-2.5">
+                          <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                            row.status === 'RUNNING' ? 'bg-emerald-950 text-emerald-300 border border-emerald-800' :
+                            'bg-amber-950 text-amber-300 border border-amber-800'
+                          }`}>
+                            {row.status}
+                          </span>
+                        </td>
+                        <td className="px-4 py-2.5 text-right text-white font-bold">{row.runlifeDays}</td>
+                        <td className="px-4 py-2.5 text-right text-slate-300">{row.freqHz}</td>
+                        <td className="px-4 py-2.5 text-slate-300">{row.operationMode}</td>
+                        <td className="px-4 py-2.5 text-right text-slate-300">{row.motorCurrentA}</td>
+                        <td className="px-4 py-2.5 text-right text-slate-300">{row.motorTempF}</td>
+                        <td className="px-4 py-2.5 text-amber-300 font-sans">{row.lastShutdown}</td>
+                        <td className="px-4 py-2.5 text-center text-slate-300">{row.cycleTimes}</td>
+                        <td className="px-4 py-2.5 text-right text-slate-300">{row.downtimeHrs}</td>
+                        <td className="px-4 py-2.5 text-slate-400 text-[11px]">{row.lastComm}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
           )}
         </div>
-
-      </div>
-
+      )}
     </div>
   );
 };
