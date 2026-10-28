@@ -4,8 +4,6 @@ import { DEMO_USERS } from './data/mockData';
 import { Header } from './components/layout/Header';
 import { Sidebar } from './components/layout/Sidebar';
 import { UserHeader } from './components/layout/UserHeader';
-import { UserTopNav } from './components/layout/UserTopNav';
-import { UserSidebar } from './components/layout/UserSidebar';
 import { AssetMonitoringPanel } from './components/layout/AssetMonitoringPanel';
 import { Breadcrumb } from './components/layout/Breadcrumb';
 import { DemoNoticeBanner } from './components/layout/DemoNoticeBanner';
@@ -37,6 +35,7 @@ import { FailureMonitoringView } from './views/modules/FailureMonitoringView';
 import { VehicleTrackingView } from './views/modules/VehicleTrackingView';
 import { UserManagementView } from './views/modules/UserManagementView';
 import { ReportsAnalyticsView } from './views/modules/ReportsAnalyticsView';
+import { AiAssistantView } from './views/modules/AiAssistantView';
 
 export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
@@ -303,6 +302,8 @@ export default function App() {
         );
       case 'scada-user':
         return <ScadaDashboardView selectedAssetId={selectedAssetId} onSelectAssetId={setSelectedAssetId} />;
+      case 'devices-user':
+        return <DeviceMonitoringView />;
       case 'digital-twin-user':
         return <DigitalTwinView selectedAssetId={selectedAssetId} onSelectAssetId={setSelectedAssetId} />;
       case 'esp-user':
@@ -323,6 +324,15 @@ export default function App() {
         return <VehicleTrackingView />;
       case 'reports-user':
         return <ReportsAnalyticsView selectedAssetId={selectedAssetId} onSelectAssetId={setSelectedAssetId} />;
+      case 'assistant-user':
+        return (
+          <AiAssistantView
+            currentUser={currentUser}
+            selectedAssetId={selectedAssetId}
+            onSelectAssetId={setSelectedAssetId}
+            onNavigateToRoute={handleSelectRoute}
+          />
+        );
       default:
         return (
           <UserOperationsDashboard
@@ -402,25 +412,17 @@ export default function App() {
         /* USER PORTAL EXPERIENCE (Dedicated Layout - PART 4 & 5)   */
         /* ======================================================== */
         <>
-          {/* Dedicated User Portal Header */}
+          {/* Unified User Portal Header with Project Branding & All Operational Modules */}
           <UserHeader
             currentUser={currentUser}
+            currentRoute={currentRoute}
+            onSelectRoute={handleSelectRoute}
             selectedAsset={selectedAsset}
             onClearSelectedAsset={() => setSelectedAssetId(null)}
             onSelectPortal={currentUser.allowedPortals?.includes('admin') ? handleSelectPortal : undefined}
             onLogout={handleLogout}
             searchQuery={searchQuery}
             onSearchChange={setSearchQuery}
-            onNavigateToRoute={handleSelectRoute}
-          />
-
-          {/* Dedicated Horizontal Module Navigation Bar with Icons & Categories */}
-          <UserTopNav
-            currentRoute={currentRoute}
-            onSelectRoute={handleSelectRoute}
-            selectedAsset={selectedAsset}
-            onClearSelectedAsset={() => setSelectedAssetId(null)}
-            onSelectAssetId={(id) => setSelectedAssetId(id)}
           />
 
           {/* User Portal 2-Column Layout below UserTopNav: Left well selector + Right module workspace */}

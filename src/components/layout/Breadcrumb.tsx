@@ -40,6 +40,7 @@ const ROUTE_TITLES: { [key: string]: { section: string; title: string; subtitle:
   'failure-monitoring-user': { section: 'Control & Actions', title: 'Downhole Failure Surveillance', subtitle: 'Gas lock incidents, sand erosion alerts, scale build-up, and motor life tracking' },
   'fleet-user': { section: 'Control & Actions', title: 'Live Fleet Vehicle Tracker', subtitle: 'Real-time GPS tracking of field technicians, pulling cranes, and acoustic trucks' },
   'reports-user': { section: 'Control & Actions', title: 'Operational Analytics & Reports', subtitle: 'Well drawdown trends, energy efficiency (kWh/bbl), and production rollups' },
+  'assistant-user': { section: 'Intelligence & Surveillance', title: 'ALS Operations AI Assistant', subtitle: 'Grounded conversational intelligence, SCADA analytics, and automated workflow drafting' },
 };
 
 export const Breadcrumb: React.FC<BreadcrumbProps> = ({

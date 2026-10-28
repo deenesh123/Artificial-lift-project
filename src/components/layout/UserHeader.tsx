@@ -1,189 +1,318 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
+  Radio, 
   Bell, 
-  Search, 
-  ShieldCheck, 
   User, 
   ChevronDown, 
   LogOut, 
-  Check, 
-  Clock, 
-  Flame, 
-  Radio, 
-  X,
+  ShieldCheck, 
+  RotateCcw,
+  LayoutDashboard,
   Layers,
+  Cpu,
+  Workflow,
   Activity,
+  Gauge,
+  History,
+  CheckSquare,
   AlertTriangle,
-  RotateCcw
+  Sliders,
+  Truck,
+  FileText,
+  ChevronLeft,
+  ChevronRight,
+  X,
+  Bot,
+  Sparkles
 } from 'lucide-react';
 import { PortalType, UserProfile, WellAsset } from '../../types';
 import { DEMO_ALARMS } from '../../data/mockData';
-import { DemoNoticeBanner } from './DemoNoticeBanner';
+import { OperationsService } from '../../services/operationsService';
+import { StorageService } from '../../services/storageService';
 
 interface UserHeaderProps {
   currentUser: UserProfile;
+  currentRoute: string;
+  onSelectRoute: (routeId: string) => void;
   selectedAsset: WellAsset | null;
   onClearSelectedAsset: () => void;
   onSelectPortal?: (portal: PortalType) => void;
   onLogout: () => void;
-  searchQuery: string;
-  onSearchChange: (query: string) => void;
-  onNavigateToRoute: (routeId: string) => void;
+  searchQuery?: string;
+  onSearchChange?: (query: string) => void;
+}
+
+interface ModuleNavItem {
+  id: string;
+  label: string;
+  icon: React.ElementType;
+  badge?: number;
+  badgeColor?: string;
+  tooltip: string;
 }
 
 export const UserHeader: React.FC<UserHeaderProps> = ({
   currentUser,
+  currentRoute,
+  onSelectRoute,
   selectedAsset,
   onClearSelectedAsset,
   onSelectPortal,
   onLogout,
-  searchQuery,
-  onSearchChange,
-  onNavigateToRoute,
 }) => {
   const [showNotifications, setShowNotifications] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
-  const [timeStr, setTimeStr] = useState('');
-  const [utcTimeStr, setUtcTimeStr] = useState('');
+  const [activeTooltip, setActiveTooltip] = useState<string | null>(null);
 
-  const unreadAlarms = DEMO_ALARMS.filter(a => !a.acknowledged);
+  // Dynamic counts for notification badges
+  const [alarms, setAlarms] = useState(() => OperationsService.getAlarms());
+  const [jobs, setJobs] = useState(() => OperationsService.getJobs());
+  const [wellsCount, setWellsCount] = useState(() => StorageService.getWells().length);
+
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(false);
 
   useEffect(() => {
-    const updateTime = () => {
-      const now = new Date();
-      setTimeStr(now.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' }) + ' CST');
-      setUtcTimeStr(now.toUTCString().slice(17, 25) + ' UTC');
+    const handleUpdate = () => {
+      setAlarms(OperationsService.getAlarms());
+      setJobs(OperationsService.getJobs());
+      setWellsCount(StorageService.getWells().length);
     };
-    updateTime();
-    const interval = setInterval(updateTime, 1000);
-    return () => clearInterval(interval);
+    window.addEventListener('operations_update', handleUpdate);
+    window.addEventListener('storage', handleUpdate);
+    return () => {
+      window.removeEventListener('operations_update', handleUpdate);
+      window.removeEventListener('storage', handleUpdate);
+    };
   }, []);
 
+  const unreadAlarms = alarms.filter(a => !a.acknowledged && a.resolutionStatus !== 'Resolved');
+  const activeJobsCount = jobs.filter(j => j.stage !== 'Completed & Closed' && j.stage !== 'Cancelled / Deferred').length;
+
+  // The 14 operational modules matching Section 2 & 3
+  const moduleNavItems: ModuleNavItem[] = [
+    {
+      id: 'operations',
+      label: 'Dashboard',
+      icon: LayoutDashboard,
+      tooltip: 'Operations Dashboard & 24h Summary',
+    },
+    {
+      id: 'asset-monitoring-user',
+      label: 'Assets',
+      icon: Layers,
+      badge: wellsCount,
+      badgeColor: 'bg-slate-800 text-slate-300 border border-slate-700',
+      tooltip: 'Asset Monitoring & Status Registry',
+    },
+    {
+      id: 'scada-user',
+      label: 'SCADA',
+      icon: Radio,
+      tooltip: 'SCADA Dashboard & Gauge Telemetry',
+    },
+    {
+      id: 'devices-user',
+      label: 'Devices',
+      icon: Cpu,
+      tooltip: 'Device Monitoring & RTU Communication',
+    },
+    {
+      id: 'digital-twin-user',
+      label: 'Digital Twin',
+      icon: Workflow,
+      tooltip: 'Physics-Based Digital Twin & Wellbore Nodal Analysis',
+    },
+    {
+      id: 'esp-user',
+      label: 'ESP',
+      icon: Activity,
+      tooltip: 'ESP Performance & Depth Pressure Gradient',
+    },
+    {
+      id: 'pump-user',
+      label: 'Pumps',
+      icon: Gauge,
+      tooltip: 'Pump Performance & Dynamometer Analysis',
+    },
+    {
+      id: 'alarms-user',
+      label: 'Alarms',
+      icon: Bell,
+      badge: unreadAlarms.length > 0 ? unreadAlarms.length : undefined,
+      badgeColor: 'bg-rose-950 text-rose-300 border border-rose-800 animate-pulse',
+      tooltip: 'Alarm Center & Threshold Indicators',
+    },
+    {
+      id: 'events-user',
+      label: 'Events',
+      icon: History,
+      tooltip: 'Event Center & Operational Timeline',
+    },
+    {
+      id: 'workflows-user',
+      label: 'Jobs',
+      icon: CheckSquare,
+      badge: activeJobsCount > 0 ? activeJobsCount : undefined,
+      badgeColor: 'bg-blue-950 text-blue-300 border border-blue-800',
+      tooltip: 'Job Workflows & Field Execution',
+    },
+    {
+      id: 'failure-monitoring-user',
+      label: 'Failures',
+      icon: AlertTriangle,
+      tooltip: 'Failure Monitoring & Reliability Intelligence',
+    },
+    {
+      id: 'cable-shop-user',
+      label: 'Cable Shop',
+      icon: Sliders,
+      tooltip: 'Cable Shop 8-Stage QA Workflow',
+    },
+    {
+      id: 'fleet-user',
+      label: 'Fleet',
+      icon: Truck,
+      tooltip: 'Vehicle & Field Fleet Logistics',
+    },
+    {
+      id: 'reports-user',
+      label: 'Reports',
+      icon: FileText,
+      tooltip: 'Reports & Production Analytics',
+    },
+    {
+      id: 'assistant-user',
+      label: 'AI Assistant',
+      icon: Bot,
+      tooltip: 'AI Operations Assistant & Telemetry Intelligence',
+    },
+  ];
+
+  // Scroll checking
+  const checkScroll = () => {
+    const el = scrollContainerRef.current;
+    if (el) {
+      setCanScrollLeft(el.scrollLeft > 8);
+      setCanScrollRight(el.scrollLeft < el.scrollWidth - el.clientWidth - 8);
+    }
+  };
+
+  useEffect(() => {
+    checkScroll();
+    window.addEventListener('resize', checkScroll);
+    return () => window.removeEventListener('resize', checkScroll);
+  }, []);
+
+  const handleScroll = (direction: 'left' | 'right') => {
+    const el = scrollContainerRef.current;
+    if (el) {
+      const scrollAmount = direction === 'left' ? -220 : 220;
+      el.scrollBy({ left: scrollAmount, behavior: 'smooth' });
+      setTimeout(checkScroll, 250);
+    }
+  };
+
   return (
-    <header className="sticky top-0 z-40 bg-slate-900 border-b border-cyan-900/40 shadow-lg">
-      <div className="flex items-center justify-between px-4 lg:px-6 h-16 gap-3">
-        {/* Zone 1: User Portal Brand & Operational Scope */}
-        <div className="flex items-center gap-3 shrink-0">
-          <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-cyan-500 to-teal-700 flex items-center justify-center shadow-md shadow-cyan-500/20 border border-cyan-400/40">
-              <Radio className="w-5 h-5 text-white animate-pulse" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="text-lg font-bold tracking-tight text-white font-mono">ALS</span>
-                <span className="text-[11px] font-semibold px-2 py-0.5 rounded bg-cyan-950/80 border border-cyan-500/50 text-cyan-300 font-mono">
-                  User Portal
-                </span>
-              </div>
-              <p className="text-[10px] text-slate-400 tracking-wide hidden sm:block">
-                Field Operations & Telemetry Surveillance
-              </p>
-            </div>
+    <header className="sticky top-0 z-40 bg-slate-900 border-b border-slate-800 shadow-md">
+      <div className="flex items-center justify-between px-3 lg:px-5 h-14 gap-3">
+        {/* ========================================================= */}
+        {/* LEFT SIDE: Project Branding Only (Section 2)              */}
+        {/* ========================================================= */}
+        <div className="flex items-center gap-2.5 shrink-0">
+          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-cyan-500 to-teal-700 flex items-center justify-center shadow-md shadow-cyan-500/20 border border-cyan-400/30">
+            <Radio className="w-4 h-4 text-white animate-pulse" />
           </div>
-
-          <div className="h-6 w-px bg-slate-800 hidden md:block" />
-
-          {/* Selected Asset Context Badge */}
-          <div className="hidden lg:flex items-center gap-2">
-            {selectedAsset ? (
-              <div className="flex items-center gap-2 bg-slate-950/90 border border-cyan-500/40 px-3 py-1.5 rounded-lg text-xs">
-                <span className={`w-2 h-2 rounded-full ${
-                  selectedAsset.status === 'Nominal' ? 'bg-emerald-400 animate-pulse' :
-                  selectedAsset.status === 'Offline' ? 'bg-rose-500' : 'bg-amber-400'
-                }`} />
-                <span className="text-slate-400 text-[11px]">Selected Asset:</span>
-                <span className="font-bold font-mono text-cyan-300">{selectedAsset.id}</span>
-                <span className="text-slate-300 font-sans hidden xl:inline">({selectedAsset.name})</span>
-                <button
-                  onClick={onClearSelectedAsset}
-                  className="ml-1 p-0.5 text-slate-400 hover:text-white rounded hover:bg-slate-800 transition-colors"
-                  title="Return to All Assets Overview"
-                >
-                  <X className="w-3.5 h-3.5" />
-                </button>
-              </div>
-            ) : (
-              <div className="flex items-center gap-2 bg-slate-950/70 border border-slate-800 px-3 py-1.5 rounded-lg text-xs text-slate-300">
-                <Layers className="w-3.5 h-3.5 text-cyan-400" />
-                <span className="font-mono text-[11px] text-slate-400">Context:</span>
-                <span className="font-semibold text-white">All Monitored Assets (16 Units)</span>
-              </div>
-            )}
-          </div>
+          <span className="text-sm font-bold tracking-tight text-white font-mono whitespace-nowrap">
+            ALS — Artificial Lift Suite
+          </span>
         </div>
 
-        {/* Zone 2: Search & Live Clock */}
-        <div className="flex-1 max-w-md hidden md:flex items-center gap-3">
-          <div className="relative w-full">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => onSearchChange(e.target.value)}
-              placeholder="Search assets (e.g. ALS-DEL-ESP-104), telemetry tags, alarms..."
-              className="w-full bg-slate-950 border border-slate-700/80 rounded-md pl-9 pr-8 py-1.5 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500"
-            />
-            {searchQuery && (
-              <button 
-                onClick={() => onSearchChange('')}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200"
-              >
-                <X className="w-3.5 h-3.5" />
-              </button>
-            )}
-          </div>
-
-          <div className="flex items-center gap-2 text-[11px] font-mono text-slate-400 bg-slate-950/70 px-2.5 py-1.5 rounded border border-slate-800 shrink-0">
-            <Clock className="w-3.5 h-3.5 text-cyan-400" />
-            <span>{timeStr || '12:00:00 CST'}</span>
-            <span className="text-slate-600">|</span>
-            <span className="text-slate-400">{utcTimeStr}</span>
-          </div>
-        </div>
-
-        {/* Zone 3: Controls, Switch to Admin (if authorized), Alarms, Profile */}
-        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-          {/* Client Presentation & Briefing Pack Quick Download (PART K) */}
-          <div className="hidden md:flex items-center gap-1.5 bg-slate-950/80 p-1 rounded-lg border border-slate-800">
-            <a
-              href="/assets/ALS_Enterprise_Client_Presentation.pptx"
-              download="ALS_Enterprise_Client_Presentation.pptx"
-              className="flex items-center gap-1.5 px-2.5 py-1 rounded text-[11px] font-semibold bg-cyan-950/80 hover:bg-cyan-900/90 text-cyan-300 border border-cyan-800 transition-colors shadow-sm"
-              title="Download 12-slide client presentation PowerPoint"
-            >
-              <span className="font-mono font-bold text-[10px] text-cyan-400">PPTX</span>
-              <span>Client Slides</span>
-            </a>
-            <a
-              href="/assets/ALS_Enterprise_Presenter_Guide_and_QA.md"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-1.5 px-2.5 py-1 rounded text-[11px] font-semibold bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition-colors"
-              title="Open Presenter Script & 12 Client Q&As"
-            >
-              <span>Guide &amp; Q&amp;A</span>
-            </a>
-          </div>
-
-          <DemoNoticeBanner compact />
-
-          {/* Conditional Admin Portal Switcher */}
-          {currentUser.allowedPortals?.includes('admin') && onSelectPortal && (
+        {/* ========================================================= */}
+        {/* RIGHT SIDE (MAIN): All 14 Operational Modules (Section 2 & 3) */}
+        {/* ========================================================= */}
+        <div className="flex-1 flex items-center min-w-0 relative px-1">
+          {/* Left Scroll Button */}
+          {canScrollLeft && (
             <button
-              onClick={() => onSelectPortal('admin')}
-              className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition-colors"
-              title="Switch to Administrator Portal"
+              onClick={() => handleScroll('left')}
+              className="absolute left-0 z-20 h-full px-1 bg-gradient-to-r from-slate-900 via-slate-900/90 to-transparent text-slate-400 hover:text-white flex items-center justify-center transition-colors"
+              title="Scroll modules left"
             >
-              <ShieldCheck className="w-3.5 h-3.5 text-blue-400" />
-              <span>Admin Portal</span>
+              <ChevronLeft className="w-4 h-4" />
             </button>
           )}
 
-          {/* Notifications Flyout */}
+          {/* Module Navigation Scroll Container */}
+          <div
+            ref={scrollContainerRef}
+            onScroll={checkScroll}
+            className="flex-1 overflow-x-auto flex items-center gap-1 xl:gap-1.5 no-scrollbar scroll-smooth py-1"
+          >
+            {moduleNavItems.map((item) => {
+              const Icon = item.icon;
+              const isActive = currentRoute === item.id;
+
+              return (
+                <div key={item.id} className="relative group shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => onSelectRoute(item.id)}
+                    onMouseEnter={() => setActiveTooltip(item.id)}
+                    onMouseLeave={() => setActiveTooltip(null)}
+                    className={`px-2.5 py-1.5 rounded-lg text-xs flex items-center gap-1.5 transition-all cursor-pointer font-sans whitespace-nowrap ${
+                      isActive
+                        ? 'bg-cyan-950 text-cyan-200 border border-cyan-500/60 shadow-sm shadow-cyan-950 font-semibold'
+                        : 'text-slate-400 hover:text-slate-100 hover:bg-slate-800/70 border border-transparent'
+                    }`}
+                  >
+                    <Icon className={`w-3.5 h-3.5 shrink-0 ${isActive ? 'text-cyan-400' : 'text-slate-400 group-hover:text-cyan-300'}`} />
+                    <span className="text-[12px]">{item.label}</span>
+
+                    {item.badge !== undefined && (
+                      <span className={`px-1.5 py-0.2 rounded text-[10px] font-mono font-bold leading-tight ${item.badgeColor || 'bg-slate-800 text-slate-300'}`}>
+                        {item.badge}
+                      </span>
+                    )}
+                  </button>
+
+                  {/* Accessible hover tooltip */}
+                  {activeTooltip === item.id && (
+                    <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 z-50 pointer-events-none px-2.5 py-1 rounded bg-slate-950 border border-slate-700 text-slate-200 text-[11px] whitespace-nowrap shadow-xl font-mono">
+                      {item.tooltip}
+                      <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-slate-950 border-t border-l border-slate-700 rotate-45" />
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Right Scroll Button */}
+          {canScrollRight && (
+            <button
+              onClick={() => handleScroll('right')}
+              className="absolute right-0 z-20 h-full px-1 bg-gradient-to-l from-slate-900 via-slate-900/90 to-transparent text-slate-400 hover:text-white flex items-center justify-center transition-colors"
+              title="Scroll modules right"
+            >
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          )}
+        </div>
+
+        {/* ========================================================= */}
+        {/* FAR RIGHT: Notifications & User Profile (Section 2 & 9)   */}
+        {/* ========================================================= */}
+        <div className="flex items-center gap-2 shrink-0">
+          {/* Notifications Bell */}
           <div className="relative">
             <button
-              onClick={() => setShowNotifications(!showNotifications)}
-              className="relative p-2 rounded-md text-slate-300 hover:text-white bg-slate-800/80 hover:bg-slate-800 border border-slate-700/60 transition-colors"
+              onClick={() => {
+                setShowNotifications(!showNotifications);
+                setShowUserMenu(false);
+              }}
+              className="relative p-1.5 rounded-lg text-slate-300 hover:text-white bg-slate-800/80 hover:bg-slate-800 border border-slate-700/60 transition-colors"
               title="Active Alarms"
             >
               <Bell className="w-4 h-4 text-cyan-400" />
@@ -194,6 +323,7 @@ export const UserHeader: React.FC<UserHeaderProps> = ({
               )}
             </button>
 
+            {/* Notifications Flyout */}
             {showNotifications && (
               <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-slate-900 border border-slate-700 rounded-lg shadow-2xl z-50 overflow-hidden">
                 <div className="px-4 py-3 bg-slate-800/80 border-b border-slate-700 flex items-center justify-between">
@@ -205,7 +335,7 @@ export const UserHeader: React.FC<UserHeaderProps> = ({
                   </div>
                   <button 
                     onClick={() => {
-                      onNavigateToRoute('alarms-user');
+                      onSelectRoute('alarms-user');
                       setShowNotifications(false);
                     }}
                     className="text-[11px] text-cyan-400 hover:underline"
@@ -214,26 +344,32 @@ export const UserHeader: React.FC<UserHeaderProps> = ({
                   </button>
                 </div>
                 <div className="divide-y divide-slate-800 max-h-80 overflow-y-auto">
-                  {unreadAlarms.map(alarm => (
-                    <div 
-                      key={alarm.id} 
-                      onClick={() => {
-                        onNavigateToRoute('alarms-user');
-                        setShowNotifications(false);
-                      }}
-                      className="p-3 hover:bg-slate-800/60 cursor-pointer transition-colors"
-                    >
-                      <div className="flex items-center justify-between text-xs mb-1">
-                        <span className="font-semibold text-rose-400 font-mono">{alarm.wellName}</span>
-                        <span className="text-[10px] text-slate-500 font-mono">{alarm.id}</span>
-                      </div>
-                      <p className="text-xs text-slate-200 line-clamp-1">{alarm.title}</p>
-                      <div className="flex items-center justify-between mt-1 text-[11px] text-slate-400">
-                        <span>{alarm.parameter}</span>
-                        <span className="text-rose-300 font-mono font-medium">{alarm.currentValue}</span>
-                      </div>
+                  {unreadAlarms.length === 0 ? (
+                    <div className="p-4 text-center text-xs text-slate-500 font-sans">
+                      No unacknowledged alarms. All systems operating within baseline parameters.
                     </div>
-                  ))}
+                  ) : (
+                    unreadAlarms.map(alarm => (
+                      <div 
+                        key={alarm.id} 
+                        onClick={() => {
+                          onSelectRoute('alarms-user');
+                          setShowNotifications(false);
+                        }}
+                        className="p-3 hover:bg-slate-800/60 cursor-pointer transition-colors"
+                      >
+                        <div className="flex items-center justify-between text-xs mb-1">
+                          <span className="font-semibold text-rose-400 font-mono">{alarm.wellName}</span>
+                          <span className="text-[10px] text-slate-500 font-mono">{alarm.id}</span>
+                        </div>
+                        <p className="text-xs text-slate-200 line-clamp-1">{alarm.title}</p>
+                        <div className="flex items-center justify-between mt-1 text-[11px] text-slate-400">
+                          <span>{alarm.parameter}</span>
+                          <span className="text-rose-300 font-mono font-medium">{alarm.currentValue}</span>
+                        </div>
+                      </div>
+                    ))
+                  )}
                 </div>
               </div>
             )}
@@ -242,23 +378,20 @@ export const UserHeader: React.FC<UserHeaderProps> = ({
           {/* User Profile Menu */}
           <div className="relative">
             <button
-              onClick={() => setShowUserMenu(!showUserMenu)}
-              className="flex items-center gap-2 bg-slate-800/80 hover:bg-slate-800 border border-slate-700/60 px-3 py-1.5 rounded-md transition-colors text-left"
+              onClick={() => {
+                setShowUserMenu(!showUserMenu);
+                setShowNotifications(false);
+              }}
+              className="flex items-center gap-2 bg-slate-800/80 hover:bg-slate-800 border border-slate-700/60 px-2.5 py-1.5 rounded-lg transition-colors text-left"
+              title={`${currentUser.name} (${currentUser.roleTitle})`}
             >
               <div className="w-6 h-6 rounded bg-cyan-900/60 border border-cyan-500/40 flex items-center justify-center text-cyan-300 text-xs font-bold font-mono">
                 {currentUser.name.charAt(0)}
               </div>
-              <div className="hidden sm:block text-left">
-                <div className="text-xs font-semibold text-white leading-tight">
-                  {currentUser.name.split(' ')[0]}
-                </div>
-                <div className="text-[10px] text-cyan-400 leading-none truncate max-w-[110px]">
-                  {currentUser.roleTitle.split(' ')[0]}
-                </div>
-              </div>
-              <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
+              <ChevronDown className="w-3 h-3 text-slate-400" />
             </button>
 
+            {/* Profile Dropdown */}
             {showUserMenu && (
               <div className="absolute right-0 mt-2 w-64 bg-slate-900 border border-slate-700 rounded-lg shadow-2xl py-2 z-50">
                 <div className="px-3 py-2 border-b border-slate-800">
@@ -278,7 +411,7 @@ export const UserHeader: React.FC<UserHeaderProps> = ({
                       className="w-full text-left px-3 py-2 text-xs text-slate-300 hover:text-white hover:bg-slate-800 flex items-center gap-2"
                     >
                       <RotateCcw className="w-3.5 h-3.5 text-cyan-400" />
-                      <span>Clear Selected Asset Filter</span>
+                      <span>Clear Selected Well Filter</span>
                     </button>
                   )}
                   {currentUser.allowedPortals?.includes('admin') && onSelectPortal && (
@@ -301,7 +434,7 @@ export const UserHeader: React.FC<UserHeaderProps> = ({
                     className="w-full text-left px-2 py-1.5 text-xs text-rose-400 hover:text-rose-300 hover:bg-rose-950/30 rounded flex items-center gap-2"
                   >
                     <LogOut className="w-3.5 h-3.5" />
-                    <span>Sign Out & Return to Login</span>
+                    <span>Sign Out</span>
                   </button>
                 </div>
               </div>
