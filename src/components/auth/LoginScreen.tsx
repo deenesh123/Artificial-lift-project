@@ -3,7 +3,7 @@ import {
   Flame, 
   ShieldCheck, 
   Lock, 
-  Mail, 
+  User, 
   ArrowRight, 
   CheckCircle2, 
   Activity, 
@@ -16,7 +16,13 @@ import {
   RefreshCw,
   HelpCircle,
   X,
-  ExternalLink
+  ExternalLink,
+  ShieldAlert,
+  KeyRound,
+  Radio,
+  Sliders,
+  Copy,
+  Check
 } from 'lucide-react';
 import { UserProfile, UserRole } from '../../types';
 import { DEMO_USERS } from '../../data/mockData';
@@ -27,28 +33,107 @@ interface LoginScreenProps {
   onGoogleLoginSuccess?: (user: UserProfile, isPending: boolean) => void;
 }
 
+interface DemoCredentialCard {
+  id: string;
+  roleTitle: string;
+  category: 'Admin Portal' | 'User Portal' | 'Security Test';
+  portalBadgeColor: string;
+  username: string;
+  email: string;
+  password: string;
+  description: string;
+}
+
+const CONFIGURED_DEMO_CREDENTIALS: DemoCredentialCard[] = [
+  {
+    id: 'admin',
+    roleTitle: 'Admin — System & Asset Administrator',
+    category: 'Admin Portal',
+    portalBadgeColor: 'bg-blue-950 text-blue-300 border-blue-800',
+    username: 'admin',
+    email: 'admin@als-operations.demo',
+    password: 'AdminDemo2026!',
+    description: 'Full administrative rights to user management, SCADA registers, and asset provisioning.',
+  },
+  {
+    id: 'field_eng',
+    roleTitle: 'Field Operations Engineer',
+    category: 'User Portal',
+    portalBadgeColor: 'bg-cyan-950 text-cyan-300 border-cyan-800',
+    username: 'field_engineer',
+    email: 'c.reyes@als-operations.demo',
+    password: 'FieldDemo2026!',
+    description: 'Field telemetry surveillance, VFD frequency tuning, pump curves, and job workflows.',
+  },
+  {
+    id: 'surveillance',
+    roleTitle: 'Surveillance Operator (RTOC)',
+    category: 'User Portal',
+    portalBadgeColor: 'bg-cyan-950 text-cyan-300 border-cyan-800',
+    username: 'surveillance_op',
+    email: 'e.rostova@als-operations.demo',
+    password: 'Surveillance2026!',
+    description: '24/7 SCADA monitoring, alarm triage, and real-time downhole sensor surveillance.',
+  },
+  {
+    id: 'executive',
+    roleTitle: 'Executive Viewer (ESG & Economics)',
+    category: 'User Portal',
+    portalBadgeColor: 'bg-emerald-950 text-emerald-300 border-emerald-800',
+    username: 'executive_viewer',
+    email: 'l.wu@als-operations.demo',
+    password: 'ViewerDemo2026!',
+    description: 'Read-only access to operational production dashboards, energy intensity, and analytics.',
+  },
+  {
+    id: 'inactive',
+    roleTitle: 'Deactivated Account (Security Test)',
+    category: 'Security Test',
+    portalBadgeColor: 'bg-rose-950 text-rose-300 border-rose-800',
+    username: 'inactive_user',
+    email: 'inactive.tech@als-operations.demo',
+    password: 'Inactive2026!',
+    description: 'Verifies the application blocks deactivated credentials with "Account Inactive".',
+  },
+];
+
 export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onGoogleLoginSuccess }) => {
-  const [activeTab, setActiveTab] = useState<'credentials' | 'quick'>('credentials');
+  const [activeTab, setActiveTab] = useState<'credentials' | 'demo_directory' | 'quick'>('credentials');
   
   // Credentials Form State
-  const [email, setEmail] = useState('s.jenkins@als-operations.demo');
-  const [password, setPassword] = useState('demo-als-2026');
+  const [identifier, setIdentifier] = useState('admin');
+  const [password, setPassword] = useState('AdminDemo2026!');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [copiedKey, setCopiedKey] = useState<string | null>(null);
 
   // 1-Click Demo Persona State
   const [selectedUser, setSelectedUser] = useState<UserProfile>(DEMO_USERS[0]);
 
   // Forgot Password Modal State
   const [showForgotPassword, setShowForgotPassword] = useState(false);
-  const [resetEmail, setResetEmail] = useState('');
+  const [resetIdentifier, setResetIdentifier] = useState('');
   const [resetLoading, setResetLoading] = useState(false);
   const [resetMessage, setResetMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
 
   // Google OAuth Modal / Flow State
   const [showGoogleModal, setShowGoogleModal] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
+
+  // Populate credentials from reference card
+  const handleApplyCredential = (card: DemoCredentialCard) => {
+    setIdentifier(card.username);
+    setPassword(card.password);
+    setActiveTab('credentials');
+    setErrorMessage(null);
+  };
+
+  const handleCopy = (text: string, key: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedKey(key);
+    setTimeout(() => setCopiedKey(null), 2000);
+  };
 
   // Credentials Submit Handler
   const handleCredentialsSubmit = async (e: React.FormEvent) => {
@@ -57,7 +142,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onGoogleLogin
     setIsLoading(true);
 
     try {
-      const user = await AuthService.loginWithCredentials(email, password);
+      const user = await AuthService.loginWithCredentials(identifier, password);
       setIsLoading(false);
       onLogin(user);
     } catch (err: any) {
@@ -102,7 +187,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onGoogleLogin
     setResetLoading(true);
 
     try {
-      const msg = await AuthService.requestPasswordReset(resetEmail);
+      const msg = await AuthService.requestPasswordReset(resetIdentifier);
       setResetLoading(false);
       setResetMessage({ text: msg, type: 'success' });
     } catch (err: any) {
@@ -118,11 +203,11 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onGoogleLogin
         <div className="flex items-center gap-2">
           <span className="w-2 h-2 rounded-full bg-emerald-400" />
           <span className="font-semibold text-slate-200">ALS Enterprise Operations</span>
-          <span>— Secure Authentication & Role Gateway</span>
+          <span>— Separate Admin & User Role-Based Authentication Gateway</span>
         </div>
         <div className="flex items-center gap-2 font-mono text-[11px] text-amber-300">
           <Activity className="w-3.5 h-3.5" />
-          <span>DEMO SIMULATED DATA</span>
+          <span>DEMO SIMULATED CREDENTIALS</span>
         </div>
       </div>
 
@@ -130,7 +215,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onGoogleLogin
       <div className="flex-1 flex items-center justify-center p-4 lg:p-8">
         <div className="w-full max-w-5xl grid grid-cols-1 lg:grid-cols-12 bg-slate-900/90 border border-slate-800 rounded-2xl shadow-2xl overflow-hidden backdrop-blur-md">
           
-          {/* Left Brand & Story Panel (5 cols) */}
+          {/* Left Brand & Architecture Story Panel (5 cols) */}
           <div className="lg:col-span-5 bg-gradient-to-br from-slate-900 via-slate-950 to-blue-950/60 p-6 lg:p-8 border-b lg:border-b-0 lg:border-r border-slate-800 flex flex-col justify-between">
             <div>
               {/* Brand Lockup */}
@@ -153,38 +238,42 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onGoogleLogin
               </h2>
 
               <p className="mt-3 text-xs lg:text-sm text-slate-300 leading-relaxed">
-                Next-generation surveillance and autonomous optimization for high-value artificial lift assets: ESP systems, sucker rod beam pumps, gas lift networks, and progressing cavity pumps.
+                Role-gated dual-portal operations for oil and gas production monitoring, ESP surveillance, SCADA telemetry, and fleet operations.
               </p>
 
-              {/* Core Feature Pillars */}
+              {/* Portal Division Explainer */}
               <div className="mt-6 space-y-3">
-                <div className="flex items-start gap-3 p-3 rounded-lg bg-slate-900/70 border border-slate-800">
-                  <Activity className="w-4 h-4 text-cyan-400 shrink-0 mt-0.5" />
+                <div className="p-3 rounded-lg bg-blue-950/30 border border-blue-900/60 flex items-start gap-3">
+                  <div className="w-8 h-8 rounded-lg bg-blue-900/50 flex items-center justify-center text-blue-400 shrink-0 mt-0.5">
+                    <ShieldCheck className="w-4 h-4" />
+                  </div>
                   <div>
-                    <div className="text-xs font-semibold text-slate-200">ESP Real-Time Surveillance</div>
-                    <div className="text-[11px] text-slate-400 leading-normal">
-                      High-frequency downhole sensor telemetry, intake pressure tracking, motor temperature envelopes, and dynamic VFD speed trimming.
+                    <div className="text-xs font-semibold text-white flex items-center gap-2">
+                      <span>Admin Portal Access</span>
+                      <span className="px-1.5 py-0.2 rounded text-[10px] bg-blue-900 text-blue-300 font-mono">
+                        Role: Super Admin
+                      </span>
                     </div>
+                    <p className="text-[11px] text-slate-300 mt-0.5 leading-normal">
+                      Infrastructure setup, SCADA register management, user provisioning, and role governance.
+                    </p>
                   </div>
                 </div>
 
-                <div className="flex items-start gap-3 p-3 rounded-lg bg-slate-900/70 border border-slate-800">
-                  <Workflow className="w-4 h-4 text-blue-400 shrink-0 mt-0.5" />
-                  <div>
-                    <div className="text-xs font-semibold text-slate-200">Digital Twin & Hydraulics Analysis</div>
-                    <div className="text-[11px] text-slate-400 leading-normal">
-                      Nodal analysis pressure gradients, pump multi-frequency H-Q curves (35-75 Hz), and Vogel inflow drawdown modeling.
-                    </div>
+                <div className="p-3 rounded-lg bg-cyan-950/30 border border-cyan-900/60 flex items-start gap-3">
+                  <div className="w-8 h-8 rounded-lg bg-cyan-900/50 flex items-center justify-center text-cyan-400 shrink-0 mt-0.5">
+                    <Radio className="w-4 h-4 text-cyan-400" />
                   </div>
-                </div>
-
-                <div className="flex items-start gap-3 p-3 rounded-lg bg-slate-900/70 border border-slate-800">
-                  <Zap className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
                   <div>
-                    <div className="text-xs font-semibold text-slate-200">Energy Intensity & Reliability</div>
-                    <div className="text-[11px] text-slate-400 leading-normal">
-                      Substation load tracking, kWh per lifted barrel optimization, 8-stage cable shop workflow, and root cause Pareto analytics.
+                    <div className="text-xs font-semibold text-white flex items-center gap-2">
+                      <span>User Operations Portal</span>
+                      <span className="px-1.5 py-0.2 rounded text-[10px] bg-cyan-900 text-cyan-300 font-mono">
+                        Roles: Ops / RTOC / Exec
+                      </span>
                     </div>
+                    <p className="text-[11px] text-slate-300 mt-0.5 leading-normal">
+                      12 dedicated operational modules: Operations Dashboard, Asset Monitoring, SCADA, ESP & Pump curves, Digital Twin, and Workflows.
+                    </p>
                   </div>
                 </div>
               </div>
@@ -192,8 +281,8 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onGoogleLogin
 
             {/* Bottom note */}
             <div className="mt-6 pt-4 border-t border-slate-800 text-[11px] text-slate-400 flex items-center justify-between">
-              <span>Operational Basins:</span>
-              <span className="font-mono text-slate-300">Permian · Eagle Ford · Bakken</span>
+              <span>Security Classification:</span>
+              <span className="font-mono text-cyan-300">RBAC Token Enforced</span>
             </div>
           </div>
 
@@ -204,10 +293,10 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onGoogleLogin
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 pb-4 mb-5">
                 <div>
                   <h3 className="text-lg font-bold text-white tracking-tight">
-                    Operations Portal Sign In
+                    Portal Sign In
                   </h3>
                   <p className="text-xs text-slate-400 mt-0.5">
-                    Sign in with enterprise credentials, Google, or select a demo role
+                    Sign in with username or email to access your assigned portal
                   </p>
                 </div>
 
@@ -225,7 +314,21 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onGoogleLogin
                         : 'text-slate-400 hover:text-slate-200'
                     }`}
                   >
-                    Credentials & Google
+                    Login
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setActiveTab('demo_directory');
+                      setErrorMessage(null);
+                    }}
+                    className={`px-3 py-1 font-semibold rounded transition-colors ${
+                      activeTab === 'demo_directory'
+                        ? 'bg-cyan-600 text-white shadow-sm'
+                        : 'text-slate-400 hover:text-slate-200'
+                    }`}
+                  >
+                    Demo Accounts
                   </button>
                   <button
                     type="button"
@@ -239,7 +342,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onGoogleLogin
                         : 'text-slate-400 hover:text-slate-200'
                     }`}
                   >
-                    1-Click Demo Personas
+                    1-Click Personas
                   </button>
                 </div>
               </div>
@@ -248,15 +351,15 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onGoogleLogin
               {errorMessage && (
                 <div className="mb-4 p-3 rounded-lg bg-rose-950/80 border border-rose-800 text-xs text-rose-300 flex items-start gap-2 animate-in fade-in">
                   <AlertCircle className="w-4 h-4 shrink-0 text-rose-400 mt-0.5" />
-                  <div className="flex-1">{errorMessage}</div>
+                  <div className="flex-1 font-sans">{errorMessage}</div>
                   <button onClick={() => setErrorMessage(null)} className="text-rose-400 hover:text-white">✕</button>
                 </div>
               )}
 
-              {activeTab === 'credentials' ? (
-                /* SECTION 1: CREDENTIALS & GOOGLE SIGN-IN */
+              {activeTab === 'credentials' && (
+                /* SECTION 1: CREDENTIALS (USERNAME/EMAIL & PASSWORD) */
                 <div className="space-y-4">
-                  {/* Google Sign In Button */}
+                  {/* Google OAuth Quick Button */}
                   <div>
                     <button
                       type="button"
@@ -264,26 +367,13 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onGoogleLogin
                       disabled={isLoading}
                       className="w-full py-2.5 px-4 rounded-lg bg-slate-950 hover:bg-slate-800 text-white border border-slate-700 hover:border-slate-600 text-xs font-semibold flex items-center justify-center gap-3 transition-all shadow-sm"
                     >
-                      {/* Google G SVG */}
                       <svg className="w-4 h-4" viewBox="0 0 24 24">
-                        <path
-                          fill="#4285F4"
-                          d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-                        />
-                        <path
-                          fill="#34A853"
-                          d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                        />
-                        <path
-                          fill="#FBBC05"
-                          d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"
-                        />
-                        <path
-                          fill="#EA4335"
-                          d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
-                        />
+                        <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+                        <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+                        <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" />
+                        <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" />
                       </svg>
-                      <span>Continue with Google</span>
+                      <span>Continue with Google OAuth</span>
                     </button>
 
                     <div className="relative my-4">
@@ -291,26 +381,26 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onGoogleLogin
                         <div className="w-full border-t border-slate-800" />
                       </div>
                       <div className="relative flex justify-center text-[10px] uppercase font-mono">
-                        <span className="bg-slate-900 px-3 text-slate-500">or sign in with email</span>
+                        <span className="bg-slate-900 px-3 text-slate-500">or sign in with username or email</span>
                       </div>
                     </div>
                   </div>
 
-                  {/* Email & Password Form */}
+                  {/* Username/Email & Password Form */}
                   <form onSubmit={handleCredentialsSubmit} className="space-y-3.5">
                     <div>
                       <label className="block text-xs font-semibold text-slate-300 mb-1">
-                        Enterprise Email
+                        Username or Enterprise Email
                       </label>
                       <div className="relative">
-                        <Mail className="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
+                        <User className="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
                         <input
-                          type="email"
-                          value={email}
-                          onChange={(e) => setEmail(e.target.value)}
-                          placeholder="name@als-operations.demo"
+                          type="text"
+                          value={identifier}
+                          onChange={(e) => setIdentifier(e.target.value)}
+                          placeholder="admin or field_engineer or user@company.com"
                           required
-                          className="w-full bg-slate-950 border border-slate-700 rounded-lg pl-9 pr-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 transition-colors"
+                          className="w-full bg-slate-950 border border-slate-700 rounded-lg pl-9 pr-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 transition-colors font-mono"
                         />
                       </div>
                     </div>
@@ -323,7 +413,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onGoogleLogin
                         <button
                           type="button"
                           onClick={() => {
-                            setResetEmail(email);
+                            setResetIdentifier(identifier);
                             setShowForgotPassword(true);
                           }}
                           className="text-[11px] text-cyan-400 hover:text-cyan-300 hover:underline"
@@ -337,9 +427,9 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onGoogleLogin
                           type={showPassword ? 'text' : 'password'}
                           value={password}
                           onChange={(e) => setPassword(e.target.value)}
-                          placeholder="••••••••"
+                          placeholder="••••••••••••"
                           required
-                          className="w-full bg-slate-950 border border-slate-700 rounded-lg pl-9 pr-10 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 transition-colors"
+                          className="w-full bg-slate-950 border border-slate-700 rounded-lg pl-9 pr-10 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 transition-colors font-mono"
                         />
                         <button
                           type="button"
@@ -360,11 +450,11 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onGoogleLogin
                         {isLoading ? (
                           <>
                             <RefreshCw className="w-4 h-4 animate-spin" />
-                            <span>Authenticating Session...</span>
+                            <span>Authenticating Credentials...</span>
                           </>
                         ) : (
                           <>
-                            <span>Sign In to ALS Operations</span>
+                            <span>Sign In to Assigned Portal</span>
                             <ArrowRight className="w-4 h-4" />
                           </>
                         )}
@@ -372,13 +462,105 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onGoogleLogin
                     </div>
                   </form>
 
-                  <div className="p-3 rounded-lg bg-slate-950 border border-slate-800 text-[11px] text-slate-400 font-mono flex items-center justify-between">
-                    <span>Standard Demo Password:</span>
-                    <span className="text-cyan-300 font-bold">demo-als-2026</span>
+                  {/* Active credentials preview helper */}
+                  <div className="p-3 rounded-lg bg-slate-950 border border-slate-800 text-[11px] text-slate-400 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="font-semibold text-slate-300 font-mono">Quick Switch:</span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIdentifier('admin');
+                          setPassword('AdminDemo2026!');
+                        }}
+                        className="text-blue-400 hover:underline font-mono"
+                      >
+                        admin
+                      </button>
+                      <span>·</span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIdentifier('field_engineer');
+                          setPassword('FieldDemo2026!');
+                        }}
+                        className="text-cyan-400 hover:underline font-mono"
+                      >
+                        field_engineer
+                      </button>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab('demo_directory')}
+                      className="text-xs text-cyan-400 hover:underline flex items-center gap-1"
+                    >
+                      <span>All Demo Credentials ➔</span>
+                    </button>
                   </div>
                 </div>
-              ) : (
-                /* SECTION 2: 1-CLICK DEMO PERSONAS FOR INSTANT TESTING */
+              )}
+
+              {activeTab === 'demo_directory' && (
+                /* SECTION 2: VERIFIED DEMO ACCOUNTS DIRECTORY */
+                <div className="space-y-3">
+                  <div className="text-xs font-semibold text-slate-400 tracking-wide uppercase font-mono flex items-center justify-between">
+                    <span>CONFIGURED DEMO ACCOUNTS (DEMO ONLY):</span>
+                    <span className="text-[10px] text-amber-400">CLICK "FILL" TO AUTO-LOAD</span>
+                  </div>
+
+                  <div className="space-y-2.5 max-h-80 overflow-y-auto pr-1">
+                    {CONFIGURED_DEMO_CREDENTIALS.map((card) => (
+                      <div
+                        key={card.id}
+                        className="p-3 rounded-lg bg-slate-950 border border-slate-800 hover:border-slate-700 transition-all space-y-2"
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <div>
+                            <div className="text-xs font-bold text-white flex items-center gap-2">
+                              <span>{card.roleTitle}</span>
+                              <span className={`px-2 py-0.5 rounded text-[10px] font-mono border ${card.portalBadgeColor}`}>
+                                {card.category}
+                              </span>
+                            </div>
+                            <p className="text-[11px] text-slate-400 mt-0.5">{card.description}</p>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => handleApplyCredential(card)}
+                            className="px-2.5 py-1 rounded text-xs font-mono bg-cyan-600 hover:bg-cyan-500 text-white font-medium shrink-0 transition-colors shadow-sm"
+                          >
+                            Fill ➔
+                          </button>
+                        </div>
+
+                        <div className="bg-slate-900 rounded p-2 text-[11px] font-mono grid grid-cols-1 sm:grid-cols-2 gap-2 text-slate-300">
+                          <div className="flex items-center justify-between">
+                            <span className="text-slate-500">Username:</span>
+                            <span className="text-cyan-300 font-bold">{card.username}</span>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span className="text-slate-500">Password:</span>
+                            <span className="text-amber-300 font-bold">{card.password}</span>
+                          </div>
+                          <div className="sm:col-span-2 flex items-center justify-between text-slate-400 text-[10px]">
+                            <span>Alt Email: {card.email}</span>
+                            <button
+                              type="button"
+                              onClick={() => handleCopy(`${card.username} / ${card.password}`, card.id)}
+                              className="text-slate-400 hover:text-white flex items-center gap-1"
+                            >
+                              {copiedKey === card.id ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
+                              <span>{copiedKey === card.id ? 'Copied' : 'Copy'}</span>
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {activeTab === 'quick' && (
+                /* SECTION 3: 1-CLICK DEMO PERSONAS FOR INSTANT TESTING */
                 <div className="space-y-3">
                   <div className="text-xs font-semibold text-slate-400 tracking-wide uppercase font-mono flex items-center justify-between">
                     <span>SELECT OPERATIONAL DEMO PERSONA:</span>
@@ -424,7 +606,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onGoogleLogin
                                   Routes to: {isAdmin ? 'Admin Portal' : 'User Portal'}
                                 </span>
                                 <span className="text-slate-600">•</span>
-                                <span className="text-slate-400">{user.fieldLocation}</span>
+                                <span className="text-slate-400">@{user.username || user.email.split('@')[0]}</span>
                               </div>
                             </div>
                           </div>
@@ -446,9 +628,9 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onGoogleLogin
             <div className="mt-5 pt-4 border-t border-slate-800 flex items-center justify-between text-[11px] text-slate-400 font-mono">
               <span className="flex items-center gap-1.5 text-emerald-400">
                 <ShieldCheck className="w-3.5 h-3.5" />
-                <span>RBAC Authorization Active</span>
+                <span>Dual Portal RBAC Enforced</span>
               </span>
-              <span>Session Time: 8 Hours</span>
+              <span>Session: 8 Hours (Encrypted)</span>
             </div>
           </div>
         </div>
@@ -469,7 +651,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onGoogleLogin
             </div>
 
             <p className="text-xs text-slate-300">
-              Enter your corporate email address to receive secure password recovery instructions and a one-time verification token.
+              Enter your assigned username or enterprise email address to dispatch a password recovery token.
             </p>
 
             {resetMessage && (
@@ -490,15 +672,15 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onGoogleLogin
             <form onSubmit={handleResetSubmit} className="space-y-3">
               <div>
                 <label className="block text-xs font-semibold text-slate-300 mb-1">
-                  Corporate Email
+                  Username or Corporate Email
                 </label>
                 <input
-                  type="email"
-                  value={resetEmail}
-                  onChange={(e) => setResetEmail(e.target.value)}
-                  placeholder="name@als-operations.demo"
+                  type="text"
+                  value={resetIdentifier}
+                  onChange={(e) => setResetIdentifier(e.target.value)}
+                  placeholder="admin or user@company.com"
                   required
-                  className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500"
+                  className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 font-mono"
                 />
               </div>
 
@@ -582,11 +764,11 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onGoogleLogin
 
               {/* Option 2: Pre-Approved Google Admin */}
               <div
-                onClick={() => handleExecuteGoogleAuth('s.jenkins@als-operations.demo', 'Sarah Jenkins')}
+                onClick={() => handleExecuteGoogleAuth('admin@als-operations.demo', 'Sarah Jenkins')}
                 className="p-3 rounded-lg border border-slate-800 bg-slate-950 hover:border-blue-500/50 cursor-pointer transition-colors space-y-1"
               >
                 <div className="flex items-center justify-between">
-                  <span className="font-bold text-white font-mono">s.jenkins@als-operations.demo</span>
+                  <span className="font-bold text-white font-mono">admin@als-operations.demo</span>
                   <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-blue-950 text-blue-300 border border-blue-800">
                     Administrator
                   </span>

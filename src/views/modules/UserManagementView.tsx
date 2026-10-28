@@ -15,7 +15,13 @@ import {
   Lock,
   Unlock,
   Radio,
-  Check
+  Check,
+  Eye,
+  EyeOff,
+  Sliders,
+  X,
+  ShieldCheck,
+  RotateCcw
 } from 'lucide-react';
 import { UserProfile, UserRole, PortalType } from '../../types';
 import { AuthService } from '../../services/authService';
@@ -32,6 +38,28 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({ onSwitch
 
   // Pending user role selection state
   const [pendingRoleSelection, setPendingRoleSelection] = useState<{ [userId: string]: UserRole }>({});
+
+  // Modals state
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [resetPasswordUser, setResetPasswordUser] = useState<UserProfile | null>(null);
+  const [newPassword, setNewPassword] = useState('');
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [modalError, setModalError] = useState<string | null>(null);
+
+  // Create User Form State
+  const [createForm, setCreateForm] = useState({
+    name: '',
+    username: '',
+    email: '',
+    password: '',
+    role: 'field_engineer' as UserRole,
+    roleTitle: 'Field Operations Engineer',
+    department: 'Field Engineering',
+    fieldLocation: 'Permian Basin — Delaware North',
+    allowedPortals: ['user'] as PortalType[],
+    defaultPortal: 'user' as PortalType,
+  });
+  const [showCreatePassword, setShowCreatePassword] = useState(false);
 
   const reloadUsers = () => {
     setUsers(AuthService.getUsers());
@@ -55,6 +83,7 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({ onSwitch
   const filtered = users.filter(u => {
     const matchesSearch = 
       u.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (u.username && u.username.toLowerCase().includes(searchTerm.toLowerCase())) ||
       u.roleTitle.toLowerCase().includes(searchTerm.toLowerCase()) ||
       u.department.toLowerCase().includes(searchTerm.toLowerCase()) ||
       u.email.toLowerCase().includes(searchTerm.toLowerCase());
@@ -70,7 +99,7 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({ onSwitch
 
   const handleImpersonate = (user: UserProfile) => {
     if (user.status === 'deactivated') {
-      showFeedback(`Cannot impersonate deactivated user account (${user.name}).`);
+      showFeedback(`Cannot switch session to deactivated account (${user.name}).`);
       return;
     }
     if (onSwitchUser) {
@@ -104,6 +133,13 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({ onSwitch
     showFeedback(`Approved account for ${user.name} as ${roleTitle}. Access privileges granted.`);
   };
 
+  const handleRejectPending = (user: UserProfile) => {
+    if (window.confirm(`Reject account approval request for ${user.name} (${user.email})?`)) {
+      AuthService.rejectPendingUser(user.id);
+      showFeedback(`Rejected and removed pending account for ${user.name}.`);
+    }
+  };
+
   const handleToggleStatus = (user: UserProfile) => {
     AuthService.toggleUserStatus(user.id);
     const nextStatus = user.status === 'active' ? 'Deactivated' : 'Activated';
@@ -111,12 +147,38 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({ onSwitch
   };
 
   const handleDeleteUser = (user: UserProfile) => {
-    if (window.confirm(`Are you sure you want to remove ${user.name} (${user.email})?`)) {
+    if (window.confirm(`Are you sure you want to permanently delete ${user.name} (@${user.username || user.email})?`)) {
       AuthService.deleteUser(user.id);
-      showFeedback(`Removed user account ${user.name}.`);
+      showFeedback(`Deleted user account ${user.name}.`);
     }
   };
 
+  // Toggle Portal Permission (Admin vs User)
+  const handleTogglePortal = (user: UserProfile, portalToToggle: PortalType) => {
+    const currentPortals = user.allowedPortals || ['user'];
+    let updatedPortals: PortalType[];
+
+    if (currentPortals.includes(portalToToggle)) {
+      // Cannot remove last portal
+      if (currentPortals.length <= 1) {
+        showFeedback(`User must have at least one authorized portal.`);
+        return;
+      }
+      updatedPortals = currentPortals.filter(p => p !== portalToToggle);
+    } else {
+      updatedPortals = [...currentPortals, portalToToggle];
+    }
+
+    let defaultPortal = user.defaultPortal;
+    if (!updatedPortals.includes(defaultPortal)) {
+      defaultPortal = updatedPortals[0];
+    }
+
+    AuthService.updateUserPortals(user.id, updatedPortals, defaultPortal);
+    showFeedback(`Updated portal permissions for ${user.name}: [${updatedPortals.join(', ').toUpperCase()}].`);
+  };
+
+  // Role Change Handler
   const handleRoleChange = (userId: string, newRole: UserRole) => {
     let roleTitle = 'Field Operations Engineer';
     let allowedPortals: PortalType[] = ['user'];
@@ -126,8 +188,20 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({ onSwitch
       roleTitle = 'System & Asset Administrator';
       allowedPortals = ['admin', 'user'];
       defaultPortal = 'admin';
+    } else if (newRole === 'operations_admin') {
+      roleTitle = 'Operations Administrator';
+      allowedPortals = ['admin', 'user'];
+      defaultPortal = 'admin';
     } else if (newRole === 'monitoring_operator') {
       roleTitle = 'Real-Time Surveillance Operator';
+      allowedPortals = ['user'];
+      defaultPortal = 'user';
+    } else if (newRole === 'maintenance_engineer') {
+      roleTitle = 'Maintenance Reliability Specialist';
+      allowedPortals = ['user'];
+      defaultPortal = 'user';
+    } else if (newRole === 'fleet_manager') {
+      roleTitle = 'Field Logistics Coordinator';
       allowedPortals = ['user'];
       defaultPortal = 'user';
     } else if (newRole === 'viewer') {
@@ -138,6 +212,74 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({ onSwitch
 
     AuthService.updateUserRole(userId, newRole, roleTitle, allowedPortals, defaultPortal);
     showFeedback(`Updated role permissions for user.`);
+  };
+
+  // Handle Save New User
+  const handleCreateUserSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setModalError(null);
+
+    try {
+      if (!createForm.name.trim()) throw new Error('Please enter the full name.');
+      if (!createForm.username.trim()) throw new Error('Please enter a username.');
+      if (!createForm.email.trim()) throw new Error('Please enter an enterprise email address.');
+      if (!createForm.password.trim() || createForm.password.length < 4) {
+        throw new Error('Password must be at least 4 characters long.');
+      }
+      if (createForm.allowedPortals.length === 0) {
+        throw new Error('Select at least one authorized portal (Admin or User).');
+      }
+
+      AuthService.createUser({
+        name: createForm.name,
+        username: createForm.username,
+        email: createForm.email,
+        password: createForm.password,
+        role: createForm.role,
+        roleTitle: createForm.roleTitle,
+        department: createForm.department,
+        fieldLocation: createForm.fieldLocation,
+        allowedPortals: createForm.allowedPortals,
+        defaultPortal: createForm.defaultPortal,
+      });
+
+      setShowCreateModal(false);
+      setCreateForm({
+        name: '',
+        username: '',
+        email: '',
+        password: '',
+        role: 'field_engineer',
+        roleTitle: 'Field Operations Engineer',
+        department: 'Field Engineering',
+        fieldLocation: 'Permian Basin — Delaware North',
+        allowedPortals: ['user'],
+        defaultPortal: 'user',
+      });
+      showFeedback(`Successfully created user @${createForm.username}. Ready for login.`);
+    } catch (err: any) {
+      setModalError(err.message || 'Failed to create user account.');
+    }
+  };
+
+  // Handle Password Reset Submit
+  const handlePasswordResetSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!resetPasswordUser) return;
+    setModalError(null);
+
+    try {
+      if (!newPassword.trim() || newPassword.length < 4) {
+        throw new Error('New password must be at least 4 characters.');
+      }
+      AuthService.updateUserPassword(resetPasswordUser.id, newPassword);
+      const name = resetPasswordUser.name;
+      setResetPasswordUser(null);
+      setNewPassword('');
+      showFeedback(`Password configured and updated for ${name}.`);
+    } catch (err: any) {
+      setModalError(err.message || 'Failed to update password.');
+    }
   };
 
   return (
@@ -158,20 +300,32 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({ onSwitch
           <div className="flex items-center gap-2">
             <Shield className="w-5 h-5 text-cyan-400" />
             <h3 className="text-base font-bold text-white">
-              Role-Based Access Control (RBAC) & Identity Governance
+              Enterprise User Management & RBAC Governance
             </h3>
           </div>
           <p className="text-xs text-slate-300 mt-1 max-w-2xl leading-relaxed">
-            Enterprise user management governing portal routing, role permissions, active session tokens, and approval gateways for external Google OAuth sign-ins.
+            Configure usernames, passwords, operational roles, and portal authorizations (Admin UI vs User Operations UI). Admin-only actions are secured.
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
-          <span className="text-xs font-mono text-slate-300 bg-slate-950 border border-slate-800 px-3 py-1.5 rounded-lg">
+        <div className="flex flex-wrap items-center gap-3">
+          <button
+            onClick={() => {
+              setModalError(null);
+              setShowCreateModal(true);
+            }}
+            className="px-3.5 py-2 rounded-lg bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-semibold text-xs flex items-center gap-2 shadow-md shadow-cyan-950 transition-all"
+          >
+            <UserPlus className="w-4 h-4" />
+            <span>Create New User</span>
+          </button>
+
+          <span className="text-xs font-mono text-slate-300 bg-slate-950 border border-slate-800 px-3 py-2 rounded-lg">
             Total Users: <strong className="text-white">{users.length}</strong>
           </span>
+
           {pendingUsers.length > 0 && (
-            <span className="text-xs font-mono text-amber-300 bg-amber-950/70 border border-amber-800 px-3 py-1.5 rounded-lg flex items-center gap-1.5">
+            <span className="text-xs font-mono text-amber-300 bg-amber-950/70 border border-amber-800 px-3 py-2 rounded-lg flex items-center gap-1.5">
               <Clock className="w-3.5 h-3.5 text-amber-400 animate-spin" />
               <span>{pendingUsers.length} Pending Approval</span>
             </span>
@@ -179,7 +333,7 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({ onSwitch
         </div>
       </div>
 
-      {/* Pending Approvals Queue Banner (Slide / System requirement) */}
+      {/* Pending Approvals Queue Banner */}
       {pendingUsers.length > 0 && (
         <div className="bg-slate-900 border border-amber-500/40 rounded-xl p-5 space-y-4 shadow-lg relative overflow-hidden">
           <div className="flex items-center justify-between border-b border-slate-800 pb-3">
@@ -195,7 +349,7 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({ onSwitch
                   </span>
                 </h4>
                 <p className="text-xs text-slate-400">
-                  New users signing in with Google OAuth are quarantined until an Administrator assigns an operational role.
+                  New users are quarantined until an authorized Administrator assigns operational roles and portal privileges.
                 </p>
               </div>
             </div>
@@ -209,7 +363,7 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({ onSwitch
                   <div className="flex items-start justify-between">
                     <div>
                       <div className="text-sm font-semibold text-white">{pUser.name}</div>
-                      <div className="text-xs text-cyan-400 font-mono">{pUser.email}</div>
+                      <div className="text-xs text-cyan-400 font-mono">@{pUser.username || 'unassigned'} · {pUser.email}</div>
                       <div className="text-[10px] text-slate-500 mt-0.5">
                         Provider: <span className="text-slate-300 capitalize">{pUser.authProvider || 'google'}</span> • Requested: {new Date(pUser.createdAt || Date.now()).toLocaleDateString()}
                       </div>
@@ -245,9 +399,9 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({ onSwitch
                       <span>Approve & Grant Role</span>
                     </button>
                     <button
-                      onClick={() => handleDeleteUser(pUser)}
+                      onClick={() => handleRejectPending(pUser)}
                       className="p-1.5 rounded-md bg-slate-900 hover:bg-rose-950 text-slate-400 hover:text-rose-400 border border-slate-800 hover:border-rose-900 transition-colors"
-                      title="Reject and remove request"
+                      title="Reject and remove pending account"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>
@@ -269,8 +423,8 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({ onSwitch
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Search by name, role, email, or basin..."
-              className="w-full bg-slate-950 border border-slate-700 rounded-md pl-9 pr-3 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500"
+              placeholder="Search by username, name, role, email..."
+              className="w-full bg-slate-950 border border-slate-700 rounded-md pl-9 pr-3 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 font-mono"
             />
           </div>
 
@@ -307,11 +461,11 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({ onSwitch
           <table className="w-full text-xs text-left">
             <thead className="bg-slate-950 text-slate-400 font-mono text-[11px] uppercase border-b border-slate-800">
               <tr>
-                <th className="px-4 py-3">User & Identity</th>
+                <th className="px-4 py-3">User & Username</th>
                 <th className="px-4 py-3">Operational Role</th>
                 <th className="px-4 py-3">Account Status</th>
-                <th className="px-4 py-3">Department & Location</th>
                 <th className="px-4 py-3">Authorized Portals</th>
+                <th className="px-4 py-3">Department & Field</th>
                 <th className="px-4 py-3 text-right">Administrative Actions</th>
               </tr>
             </thead>
@@ -320,12 +474,16 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({ onSwitch
                 const isActive = user.status === 'active' || (!user.status);
                 const isPending = user.status === 'pending_approval';
                 const isDeactivated = user.status === 'deactivated';
+                const hasAdmin = user.allowedPortals?.includes('admin');
+                const hasUser = user.allowedPortals?.includes('user');
 
                 return (
                   <tr key={user.id} className="hover:bg-slate-800/40 transition-colors">
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2.5">
-                        <div className="w-7 h-7 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center font-bold text-cyan-400 text-xs shrink-0">
+                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center font-bold text-xs shrink-0 ${
+                          hasAdmin ? 'bg-blue-900 text-blue-200 border border-blue-700' : 'bg-slate-800 text-cyan-300 border border-slate-700'
+                        }`}>
                           {user.name.charAt(0)}
                         </div>
                         <div>
@@ -337,25 +495,30 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({ onSwitch
                               </span>
                             )}
                           </div>
-                          <div className="text-[10px] text-slate-400 font-mono">{user.email}</div>
+                          <div className="text-[11px] text-cyan-400 font-mono flex items-center gap-2">
+                            <span>@{user.username || user.email.split('@')[0]}</span>
+                            <span className="text-slate-600">·</span>
+                            <span className="text-slate-400 text-[10px] font-sans truncate max-w-[150px]">{user.email}</span>
+                          </div>
                         </div>
                       </div>
                     </td>
 
                     <td className="px-4 py-3">
-                      <div className="flex items-center gap-2">
-                        <select
-                          value={user.role}
-                          onChange={(e) => handleRoleChange(user.id, e.target.value as UserRole)}
-                          disabled={isPending}
-                          className="bg-slate-950 border border-slate-700 text-xs text-cyan-300 font-sans rounded px-2 py-1 focus:outline-none focus:border-cyan-500 disabled:opacity-50"
-                        >
-                          <option value="super_admin">System Administrator</option>
-                          <option value="field_engineer">Field Operations Engineer</option>
-                          <option value="monitoring_operator">Surveillance Operator</option>
-                          <option value="viewer">Executive & ESG Viewer</option>
-                        </select>
-                      </div>
+                      <select
+                        value={user.role}
+                        onChange={(e) => handleRoleChange(user.id, e.target.value as UserRole)}
+                        disabled={isPending}
+                        className="bg-slate-950 border border-slate-700 text-xs text-cyan-300 font-sans rounded px-2 py-1 focus:outline-none focus:border-cyan-500 disabled:opacity-50"
+                      >
+                        <option value="super_admin">System Administrator</option>
+                        <option value="operations_admin">Operations Administrator</option>
+                        <option value="field_engineer">Field Operations Engineer</option>
+                        <option value="monitoring_operator">Surveillance Operator</option>
+                        <option value="maintenance_engineer">Maintenance Reliability</option>
+                        <option value="fleet_manager">Field Logistics</option>
+                        <option value="viewer">Executive & ESG Viewer</option>
+                      </select>
                     </td>
 
                     <td className="px-4 py-3">
@@ -368,7 +531,7 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({ onSwitch
                       {isPending && (
                         <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[11px] font-sans font-medium bg-amber-950/70 text-amber-300 border border-amber-800">
                           <Clock className="w-3 h-3 text-amber-400 animate-spin" />
-                          <span>Pending Approval</span>
+                          <span>Pending</span>
                         </span>
                       )}
                       {isDeactivated && (
@@ -379,28 +542,44 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({ onSwitch
                       )}
                     </td>
 
+                    {/* Authorized Portals with clickable toggle permission badges */}
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-1.5 font-sans">
+                        <button
+                          type="button"
+                          onClick={() => handleTogglePortal(user, 'admin')}
+                          title={hasAdmin ? 'Click to revoke Admin Portal' : 'Click to grant Admin Portal'}
+                          className={`px-2 py-0.5 rounded text-[10px] font-mono transition-colors ${
+                            hasAdmin 
+                              ? 'bg-blue-950 text-blue-300 border border-blue-700 hover:bg-rose-950 hover:text-rose-300' 
+                              : 'bg-slate-900 text-slate-500 border border-slate-800 hover:border-slate-700 hover:text-slate-300'
+                          }`}
+                        >
+                          {hasAdmin ? '✓ Admin UI' : '+ Admin UI'}
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => handleTogglePortal(user, 'user')}
+                          title={hasUser ? 'Click to revoke User Portal' : 'Click to grant User Portal'}
+                          className={`px-2 py-0.5 rounded text-[10px] font-mono transition-colors ${
+                            hasUser 
+                              ? 'bg-cyan-950 text-cyan-300 border border-cyan-700 hover:bg-rose-950 hover:text-rose-300' 
+                              : 'bg-slate-900 text-slate-500 border border-slate-800 hover:border-slate-700 hover:text-slate-300'
+                          }`}
+                        >
+                          {hasUser ? '✓ User UI' : '+ User UI'}
+                        </button>
+                      </div>
+                    </td>
+
                     <td className="px-4 py-3 font-sans">
                       <div className="text-slate-300">{user.department}</div>
                       <div className="text-[10px] text-slate-400 font-mono">{user.fieldLocation}</div>
                     </td>
 
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-1 font-sans">
-                        {user.allowedPortals?.includes('admin') && (
-                          <span className="px-2 py-0.5 rounded text-[10px] bg-blue-950 text-blue-300 border border-blue-800">
-                            Admin
-                          </span>
-                        )}
-                        {user.allowedPortals?.includes('user') && (
-                          <span className="px-2 py-0.5 rounded text-[10px] bg-cyan-950 text-cyan-300 border border-cyan-800">
-                            User
-                          </span>
-                        )}
-                      </div>
-                    </td>
-
                     <td className="px-4 py-3 text-right">
-                      <div className="flex items-center justify-end gap-2 font-sans">
+                      <div className="flex items-center justify-end gap-1.5 font-sans">
                         {isPending ? (
                           <button
                             onClick={() => handleApproveUser(user)}
@@ -410,6 +589,20 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({ onSwitch
                           </button>
                         ) : (
                           <>
+                            {/* Reset / Configure Password Button */}
+                            <button
+                              onClick={() => {
+                                setModalError(null);
+                                setResetPasswordUser(user);
+                                setNewPassword('');
+                              }}
+                              className="p-1.5 rounded text-slate-400 hover:text-amber-300 bg-slate-800 hover:bg-slate-700 transition-colors"
+                              title={`Reset / Configure Password for ${user.name}`}
+                            >
+                              <Key className="w-3.5 h-3.5" />
+                            </button>
+
+                            {/* Impersonate / Test Session */}
                             <button
                               onClick={() => handleImpersonate(user)}
                               disabled={isDeactivated}
@@ -418,9 +611,11 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({ onSwitch
                             >
                               Login As
                             </button>
+
+                            {/* Toggle Active / Deactivate */}
                             <button
                               onClick={() => handleToggleStatus(user)}
-                              className={`p-1 rounded text-xs transition-colors ${
+                              className={`p-1.5 rounded text-xs transition-colors ${
                                 isActive 
                                   ? 'text-slate-400 hover:text-rose-300 bg-slate-800 hover:bg-rose-950' 
                                   : 'text-slate-400 hover:text-emerald-300 bg-slate-800 hover:bg-emerald-950'
@@ -428,6 +623,15 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({ onSwitch
                               title={isActive ? 'Deactivate account' : 'Reactivate account'}
                             >
                               {isActive ? <Lock className="w-3.5 h-3.5" /> : <Unlock className="w-3.5 h-3.5" />}
+                            </button>
+
+                            {/* Delete User */}
+                            <button
+                              onClick={() => handleDeleteUser(user)}
+                              className="p-1.5 rounded text-slate-400 hover:text-rose-400 bg-slate-800 hover:bg-slate-700 transition-colors"
+                              title="Delete user record"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
                             </button>
                           </>
                         )}
@@ -440,6 +644,314 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({ onSwitch
           </table>
         </div>
       </div>
+
+      {/* CREATE NEW USER MODAL */}
+      {showCreateModal && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-slate-900 border border-slate-700 rounded-xl max-w-lg w-full p-6 space-y-4 shadow-2xl max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <div className="flex items-center gap-2">
+                <UserPlus className="w-5 h-5 text-cyan-400" />
+                <h4 className="text-sm font-bold text-white uppercase tracking-wider font-mono">
+                  Register & Provision New User
+                </h4>
+              </div>
+              <button onClick={() => setShowCreateModal(false)} className="text-slate-400 hover:text-white">✕</button>
+            </div>
+
+            {modalError && (
+              <div className="p-3 rounded-lg bg-rose-950/80 border border-rose-800 text-xs text-rose-300 flex items-start gap-2">
+                <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5 text-rose-400" />
+                <span>{modalError}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleCreateUserSubmit} className="space-y-3.5 text-xs">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-semibold text-slate-300 mb-1">Full Name</label>
+                  <input
+                    type="text"
+                    value={createForm.name}
+                    onChange={(e) => setCreateForm({ ...createForm, name: e.target.value })}
+                    placeholder="e.g. Taylor Reed"
+                    required
+                    className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-semibold text-slate-300 mb-1">Assigned Username</label>
+                  <input
+                    type="text"
+                    value={createForm.username}
+                    onChange={(e) => setCreateForm({ ...createForm, username: e.target.value })}
+                    placeholder="e.g. taylor_reed"
+                    required
+                    className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 font-mono"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-semibold text-slate-300 mb-1">Corporate Email</label>
+                  <input
+                    type="email"
+                    value={createForm.email}
+                    onChange={(e) => setCreateForm({ ...createForm, email: e.target.value })}
+                    placeholder="t.reed@als-operations.demo"
+                    required
+                    className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 font-mono"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-semibold text-slate-300 mb-1">Initial Password</label>
+                  <div className="relative">
+                    <input
+                      type={showCreatePassword ? 'text' : 'password'}
+                      value={createForm.password}
+                      onChange={(e) => setCreateForm({ ...createForm, password: e.target.value })}
+                      placeholder="••••••••••••"
+                      required
+                      className="w-full bg-slate-950 border border-slate-700 rounded-lg pl-3 pr-8 py-2 text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 font-mono"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowCreatePassword(!showCreatePassword)}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white"
+                    >
+                      {showCreatePassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-semibold text-slate-300 mb-1">Operational Role</label>
+                  <select
+                    value={createForm.role}
+                    onChange={(e) => {
+                      const newRole = e.target.value as UserRole;
+                      let title = 'Field Operations Engineer';
+                      let defaultP: PortalType = 'user';
+                      let allowed: PortalType[] = ['user'];
+                      if (newRole === 'super_admin' || newRole === 'operations_admin') {
+                        title = newRole === 'super_admin' ? 'System Administrator' : 'Operations Administrator';
+                        defaultP = 'admin';
+                        allowed = ['admin', 'user'];
+                      } else if (newRole === 'monitoring_operator') {
+                        title = 'Real-Time Surveillance Operator';
+                      } else if (newRole === 'viewer') {
+                        title = 'Executive & ESG Viewer';
+                      }
+                      setCreateForm({
+                        ...createForm,
+                        role: newRole,
+                        roleTitle: title,
+                        defaultPortal: defaultP,
+                        allowedPortals: allowed,
+                      });
+                    }}
+                    className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-cyan-500"
+                  >
+                    <option value="field_engineer">Field Operations Engineer</option>
+                    <option value="monitoring_operator">Surveillance Operator (RTOC)</option>
+                    <option value="super_admin">System Administrator</option>
+                    <option value="operations_admin">Operations Administrator</option>
+                    <option value="maintenance_engineer">Maintenance Specialist</option>
+                    <option value="fleet_manager">Fleet Coordinator</option>
+                    <option value="viewer">Executive & ESG Viewer</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block font-semibold text-slate-300 mb-1">Department</label>
+                  <input
+                    type="text"
+                    value={createForm.department}
+                    onChange={(e) => setCreateForm({ ...createForm, department: e.target.value })}
+                    className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block font-semibold text-slate-300 mb-1">Field Operating Location</label>
+                <input
+                  type="text"
+                  value={createForm.fieldLocation}
+                  onChange={(e) => setCreateForm({ ...createForm, fieldLocation: e.target.value })}
+                  className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500"
+                />
+              </div>
+
+              {/* Portal Authorizations */}
+              <div className="bg-slate-950 border border-slate-800 rounded-lg p-3 space-y-2">
+                <span className="block font-semibold text-slate-300 font-mono text-[11px] uppercase">
+                  Authorized Portals (RBAC Routing)
+                </span>
+                <div className="grid grid-cols-2 gap-2 text-xs">
+                  <label className="flex items-center gap-2 cursor-pointer bg-slate-900 p-2 rounded border border-slate-800">
+                    <input
+                      type="checkbox"
+                      checked={createForm.allowedPortals.includes('admin')}
+                      onChange={(e) => {
+                        const checked = e.target.checked;
+                        const next = checked 
+                          ? [...createForm.allowedPortals, 'admin' as PortalType]
+                          : createForm.allowedPortals.filter(p => p !== 'admin');
+                        setCreateForm({
+                          ...createForm,
+                          allowedPortals: next,
+                          defaultPortal: next.includes(createForm.defaultPortal) ? createForm.defaultPortal : (next[0] || 'user'),
+                        });
+                      }}
+                      className="rounded border-slate-700 text-blue-600 focus:ring-0"
+                    />
+                    <span className="text-blue-300 font-medium">Admin Portal</span>
+                  </label>
+
+                  <label className="flex items-center gap-2 cursor-pointer bg-slate-900 p-2 rounded border border-slate-800">
+                    <input
+                      type="checkbox"
+                      checked={createForm.allowedPortals.includes('user')}
+                      onChange={(e) => {
+                        const checked = e.target.checked;
+                        const next = checked 
+                          ? [...createForm.allowedPortals, 'user' as PortalType]
+                          : createForm.allowedPortals.filter(p => p !== 'user');
+                        setCreateForm({
+                          ...createForm,
+                          allowedPortals: next,
+                          defaultPortal: next.includes(createForm.defaultPortal) ? createForm.defaultPortal : (next[0] || 'admin'),
+                        });
+                      }}
+                      className="rounded border-slate-700 text-cyan-600 focus:ring-0"
+                    />
+                    <span className="text-cyan-300 font-medium">User Operations UI</span>
+                  </label>
+                </div>
+
+                <div className="pt-1 flex items-center justify-between text-[11px]">
+                  <span className="text-slate-400">Default Portal on Login:</span>
+                  <select
+                    value={createForm.defaultPortal}
+                    onChange={(e) => setCreateForm({ ...createForm, defaultPortal: e.target.value as PortalType })}
+                    className="bg-slate-900 border border-slate-700 text-white rounded px-2 py-1"
+                  >
+                    {createForm.allowedPortals.includes('admin') && <option value="admin">Admin Portal</option>}
+                    {createForm.allowedPortals.includes('user') && <option value="user">User Operations Portal</option>}
+                  </select>
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-3 border-t border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => setShowCreateModal(false)}
+                  className="px-3.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-1.5 rounded-lg bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-semibold text-xs flex items-center gap-1.5 shadow-md"
+                >
+                  <UserPlus className="w-3.5 h-3.5" />
+                  <span>Create User Account</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* CONFIGURE / RESET PASSWORD MODAL */}
+      {resetPasswordUser && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-slate-900 border border-slate-700 rounded-xl max-w-md w-full p-6 space-y-4 shadow-2xl">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <div className="flex items-center gap-2">
+                <Key className="w-4 h-4 text-amber-400" />
+                <h4 className="text-sm font-bold text-white uppercase tracking-wider font-mono">
+                  Configure / Reset User Password
+                </h4>
+              </div>
+              <button onClick={() => setResetPasswordUser(null)} className="text-slate-400 hover:text-white">✕</button>
+            </div>
+
+            <div className="bg-slate-950 p-3 rounded-lg border border-slate-800 text-xs font-mono space-y-1">
+              <div className="flex justify-between">
+                <span className="text-slate-500">Target User:</span>
+                <span className="text-white font-bold">{resetPasswordUser.name}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500">Username:</span>
+                <span className="text-cyan-300">@{resetPasswordUser.username || resetPasswordUser.email.split('@')[0]}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500">Role:</span>
+                <span className="text-slate-300">{resetPasswordUser.roleTitle}</span>
+              </div>
+            </div>
+
+            {modalError && (
+              <div className="p-2.5 rounded bg-rose-950/80 border border-rose-800 text-xs text-rose-300 flex items-start gap-2">
+                <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
+                <span>{modalError}</span>
+              </div>
+            )}
+
+            <form onSubmit={handlePasswordResetSubmit} className="space-y-3">
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-1">
+                  New Password
+                </label>
+                <div className="relative">
+                  <input
+                    type={showNewPassword ? 'text' : 'password'}
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    placeholder="Enter new credentials password..."
+                    required
+                    className="w-full bg-slate-950 border border-slate-700 rounded-lg pl-3 pr-8 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 font-mono"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowNewPassword(!showNewPassword)}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white"
+                  >
+                    {showNewPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                  </button>
+                </div>
+                <p className="text-[10px] text-slate-500 mt-1">
+                  Updates local auth storage immediately. User will sign in using this new password.
+                </p>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-3 border-t border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => setResetPasswordUser(null)}
+                  className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-500 text-white font-semibold text-xs flex items-center gap-1.5 shadow-md"
+                >
+                  <Key className="w-3.5 h-3.5" />
+                  <span>Update Password</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

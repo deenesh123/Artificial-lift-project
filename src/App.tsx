@@ -87,6 +87,42 @@ export default function App() {
     };
   }, []);
 
+  // Listen for direct URL navigation changes (e.g. #admin, #user, ?portal=admin)
+  useEffect(() => {
+    const handleHashOrUrl = () => {
+      const hash = window.location.hash.toLowerCase();
+      const urlParams = new URLSearchParams(window.location.search);
+      const portalParam = urlParams.get('portal')?.toLowerCase();
+
+      if (hash.startsWith('#admin') || portalParam === 'admin') {
+        setCurrentPortal('admin');
+        const routeMatch = hash.replace('#admin/', '').replace('#admin', '');
+        if (routeMatch) setCurrentRoute(routeMatch);
+      } else if (hash.startsWith('#user') || hash.startsWith('#operations') || portalParam === 'user') {
+        setCurrentPortal('user');
+        const routeMatch = hash.replace('#user/', '').replace('#user', '');
+        if (routeMatch) setCurrentRoute(routeMatch || 'operations');
+      }
+    };
+
+    if (window.location.hash || window.location.search) {
+      handleHashOrUrl();
+    }
+
+    window.addEventListener('hashchange', handleHashOrUrl);
+    return () => window.removeEventListener('hashchange', handleHashOrUrl);
+  }, []);
+
+  // Synchronize browser URL hash with current portal and route
+  useEffect(() => {
+    if (isAuthenticated) {
+      const targetHash = `#${currentPortal}/${currentRoute}`;
+      if (window.location.hash !== targetHash) {
+        window.history.replaceState(null, '', targetHash);
+      }
+    }
+  }, [currentPortal, currentRoute, isAuthenticated]);
+
   const selectedAsset = selectedAssetId 
     ? wells.find(w => w.id === selectedAssetId || w.wellCode === selectedAssetId) || null 
     : null;
@@ -176,6 +212,18 @@ export default function App() {
     );
   }
 
+  // Security Gate: Non-admin users cannot access Admin Portal by URL hash or direct parameter
+  if (currentPortal === 'admin' && !currentUser.allowedPortals?.includes('admin')) {
+    return (
+      <UnauthorizedAccess
+        currentUser={currentUser}
+        attemptedPortal="Admin Portal"
+        onReturnToUserPortal={() => handleSelectPortal('user')}
+        onSignOut={handleLogout}
+      />
+    );
+  }
+
   // Render Admin Portal View Content
   const renderAdminView = () => {
     // 403 Forbidden Gate for non-admin accounts
@@ -238,7 +286,7 @@ export default function App() {
       case 'asset-monitoring-user':
         return (
           <AssetManagementView 
-            onSelectAsset={(well) => {
+            onSelectAsset={(well: WellAsset) => {
               setSelectedAssetId(well.id);
               setCurrentRoute('operations');
               showGlobalNotice(`Focused telemetry on asset ${well.name} (${well.id}).`);
