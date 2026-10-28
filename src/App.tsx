@@ -308,7 +308,7 @@ export default function App() {
       case 'esp-user':
         return <EspMonitoringView selectedAssetId={selectedAssetId} onSelectAssetId={setSelectedAssetId} />;
       case 'pump-user':
-        return <PumpDashboardView />;
+        return <PumpDashboardView selectedAssetId={selectedAssetId} onSelectAssetId={setSelectedAssetId} />;
       case 'alarms-user':
         return <AlarmCenterView selectedAssetId={selectedAssetId} onSelectAssetId={setSelectedAssetId} />;
       case 'events-user':
@@ -316,9 +316,9 @@ export default function App() {
       case 'failure-monitoring-user':
         return <FailureMonitoringView selectedAssetId={selectedAssetId} onSelectAssetId={setSelectedAssetId} />;
       case 'workflows-user':
-        return <JobWorkflowsView />;
+        return <JobWorkflowsView selectedAssetId={selectedAssetId} onSelectAssetId={setSelectedAssetId} />;
       case 'cable-shop-user':
-        return <CableShopView />;
+        return <CableShopView selectedAssetId={selectedAssetId} onSelectAssetId={setSelectedAssetId} />;
       case 'fleet-user':
         return <VehicleTrackingView />;
       case 'reports-user':

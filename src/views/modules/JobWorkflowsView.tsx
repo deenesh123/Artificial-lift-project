@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { 
   CheckSquare, 
   Plus, 
@@ -36,13 +36,34 @@ const WORKFLOW_STAGES: JobWorkflowStage[] = [
   'Completed & Closed',
 ];
 
-export const JobWorkflowsView: React.FC = () => {
+interface JobWorkflowsViewProps {
+  selectedAssetId?: string | null;
+  onSelectAssetId?: (id: string | null) => void;
+}
+
+export const JobWorkflowsView: React.FC<JobWorkflowsViewProps> = ({
+  selectedAssetId,
+  onSelectAssetId,
+}) => {
   const [jobs, setJobs] = useState<WorkOrderJob[]>(() => OperationsService.getJobs());
   const [searchTerm, setSearchTerm] = useState('');
   const [typeFilter, setTypeFilter] = useState<string>('All');
   const [stageFilter, setStageFilter] = useState<string>('All');
   const [priorityFilter, setPriorityFilter] = useState<string>('All');
   const [wellFilter, setWellFilter] = useState<string>('All');
+
+  const wells = useMemo(() => StorageService.getWells(), []);
+
+  useEffect(() => {
+    if (selectedAssetId) {
+      const match = wells.find(w => w.id === selectedAssetId || w.wellCode === selectedAssetId);
+      if (match) {
+        setWellFilter(match.id);
+      }
+    } else {
+      setWellFilter('All');
+    }
+  }, [selectedAssetId, wells]);
 
   // Modals
   const [selectedJob, setSelectedJob] = useState<WorkOrderJob | null>(null);
@@ -55,8 +76,6 @@ export const JobWorkflowsView: React.FC = () => {
   const [completionNotes, setCompletionNotes] = useState<string>('');
   const [actualHoursInput, setActualHoursInput] = useState<number>(16);
   const [notice, setNotice] = useState<string | null>(null);
-
-  const wells = useMemo(() => StorageService.getWells(), []);
 
   const showToast = (msg: string) => {
     setNotice(msg);

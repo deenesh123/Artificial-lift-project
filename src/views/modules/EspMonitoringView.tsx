@@ -316,14 +316,34 @@ export const EspMonitoringView: React.FC<EspMonitoringViewProps> = ({
 
               <div className="h-64 w-full">
                 <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={pressureGradientData} margin={{ top: 10, right: 15, left: -10, bottom: 0 }}>
+                  <LineChart layout="vertical" data={pressureGradientData} margin={{ top: 10, right: 30, left: 10, bottom: 5 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-                    <XAxis dataKey="depthFt" stroke="#64748b" tick={{ fontSize: 10 }} label={{ value: 'Depth (ft)', position: 'insideBottom', offset: -2, fill: '#64748b', fontSize: 10 }} />
-                    <YAxis stroke="#64748b" tick={{ fontSize: 10 }} label={{ value: 'Pressure (psi)', angle: -90, position: 'insideLeft', fill: '#64748b', fontSize: 10 }} />
-                    <Tooltip contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', borderRadius: '8px', fontSize: '11px' }} />
+                    <XAxis 
+                      type="number" 
+                      domain={[0, 5000]} 
+                      stroke="#64748b" 
+                      tick={{ fontSize: 10 }} 
+                      label={{ value: 'Pressure (psi)', position: 'insideBottom', offset: -2, fill: '#94a3b8', fontSize: 10 }} 
+                    />
+                    <YAxis 
+                      dataKey="depthFt" 
+                      type="number" 
+                      reversed={true} 
+                      domain={[0, 12000]} 
+                      ticks={[0, 2000, 4000, 6000, 8000, 9800, 11450]} 
+                      stroke="#64748b" 
+                      tick={{ fontSize: 10 }} 
+                      label={{ value: 'True Vertical Depth (ft TVD)', angle: -90, position: 'insideLeft', offset: 5, fill: '#94a3b8', fontSize: 10 }} 
+                    />
+                    <Tooltip 
+                      formatter={(val: any, name: any) => [`${val} psi`, name]}
+                      labelFormatter={(depth) => `Depth: ${depth} ft TVD`}
+                      contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', borderRadius: '8px', fontSize: '11px' }} 
+                    />
                     <Legend wrapperStyle={{ fontSize: '10px' }} />
-                    <Line type="monotone" dataKey="tubingPressure" name="Tubing Fluid Column (psi)" stroke="#06b6d4" strokeWidth={2} dot />
-                    <Line type="monotone" dataKey="casingPressure" name="Casing Gas Head (psi)" stroke="#a855f7" strokeWidth={2} dot={false} />
+                    <Line type="monotone" dataKey="tubingPressure" name="Tubing Fluid Column (psi)" stroke="#06b6d4" strokeWidth={2.5} dot={{ r: 3 }} />
+                    <Line type="monotone" dataKey="casingPressure" name="Casing Gas Head (psi)" stroke="#a855f7" strokeWidth={2} dot={{ r: 3 }} />
+                    <ReferenceArea y1={9750} y2={9850} fill="#f43f5e" fillOpacity={0.2} stroke="#f43f5e" strokeDasharray="2 2" />
                   </LineChart>
                 </ResponsiveContainer>
               </div>

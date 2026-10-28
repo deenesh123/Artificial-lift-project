@@ -790,15 +790,32 @@ export const DigitalTwinView: React.FC<DigitalTwinViewProps> = ({
                 <ReferenceDot x={nodalData.operatingFlowRate} y={nodalData.operatingPwf} r={6} fill="#10b981" stroke="#ffffff" strokeWidth={2} />
               </LineChart>
             ) : analyticsTab === 'gradient' ? (
-              <LineChart data={gradientData} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
+              <LineChart layout="vertical" data={gradientData} margin={{ top: 10, right: 30, left: 10, bottom: 5 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-                <XAxis dataKey="depthFt" stroke="#64748b" tick={{ fontSize: 11 }} label={{ value: 'True Vertical Depth (ft)', position: 'insideBottomRight', offset: -5, fontSize: 10, fill: '#64748b' }} />
-                <YAxis yAxisId="p" orientation="left" stroke="#38bdf8" tick={{ fontSize: 11 }} label={{ value: 'Pressure (psi)', angle: -90, position: 'insideLeft', fontSize: 10, fill: '#38bdf8' }} />
-                <YAxis yAxisId="t" orientation="right" stroke="#f43f5e" tick={{ fontSize: 11 }} label={{ value: 'Temp (°F)', angle: 90, position: 'insideRight', fontSize: 10, fill: '#f43f5e' }} domain={[100, 250]} />
-                <Tooltip contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', borderRadius: '8px', fontSize: '11px' }} />
+                <XAxis 
+                  type="number" 
+                  domain={[0, 4500]}
+                  stroke="#38bdf8" 
+                  tick={{ fontSize: 10 }} 
+                  label={{ value: 'Wellbore Pressure (psi)', position: 'insideBottom', offset: -2, fill: '#38bdf8', fontSize: 10 }} 
+                />
+                <YAxis 
+                  dataKey="depthFt" 
+                  type="number" 
+                  reversed={true} 
+                  domain={[0, 12000]} 
+                  ticks={[0, 2500, 5500, 9800, 10200, 11450]}
+                  stroke="#64748b" 
+                  tick={{ fontSize: 10 }} 
+                  label={{ value: 'True Vertical Depth (ft TVD)', angle: -90, position: 'insideLeft', offset: 5, fill: '#94a3b8', fontSize: 10 }} 
+                />
+                <Tooltip 
+                  formatter={(val: any, name: any) => [`${val} psi`, name]}
+                  labelFormatter={(depth) => `Depth: ${depth} ft TVD`}
+                  contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', borderRadius: '8px', fontSize: '11px' }} 
+                />
                 <Legend wrapperStyle={{ fontSize: '11px' }} />
-                <Line yAxisId="p" type="monotone" dataKey="pressurePsi" name="Wellbore Pressure (psi)" stroke="#38bdf8" strokeWidth={2} />
-                <Line yAxisId="t" type="monotone" dataKey="tempF" name="Geothermal / Motor Temp (°F)" stroke="#f43f5e" strokeWidth={2} />
+                <Line type="monotone" dataKey="pressurePsi" name="Wellbore Pressure (psi)" stroke="#38bdf8" strokeWidth={2.5} dot={{ r: 4 }} />
               </LineChart>
             ) : (
               <LineChart data={telemetryData} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>

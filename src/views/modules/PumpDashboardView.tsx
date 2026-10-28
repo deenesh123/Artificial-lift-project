@@ -27,7 +27,15 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import { PumpEquipment, PumpType, PumpStatus } from '../../types';
 import { StorageService, INITIAL_PUMPS } from '../../services/storageService';
 
-export const PumpDashboardView: React.FC = () => {
+interface PumpDashboardViewProps {
+  selectedAssetId?: string | null;
+  onSelectAssetId?: (id: string | null) => void;
+}
+
+export const PumpDashboardView: React.FC<PumpDashboardViewProps> = ({
+  selectedAssetId,
+  onSelectAssetId,
+}) => {
   const [pumps, setPumps] = useState<PumpEquipment[]>([]);
   const [activeTab, setActiveTab] = useState<'registry' | 'dyno'>('registry');
 
@@ -77,6 +85,20 @@ export const PumpDashboardView: React.FC = () => {
     window.addEventListener('storage', handleStorageChange);
     return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
+
+  useEffect(() => {
+    if (selectedAssetId && pumps.length > 0) {
+      const match = pumps.find(p => 
+        p.wellId === selectedAssetId || 
+        p.id === selectedAssetId ||
+        p.wellName?.toLowerCase().includes(selectedAssetId.toLowerCase())
+      );
+      if (match) {
+        setAnalyzedPumpId(match.id);
+        setSelectedPump(match);
+      }
+    }
+  }, [selectedAssetId, pumps]);
 
   const availableWells = useMemo(() => StorageService.getWells(), [pumps]);
 
