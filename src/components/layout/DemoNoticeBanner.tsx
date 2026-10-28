@@ -19,7 +19,7 @@ export const DemoNoticeBanner: React.FC<{ compact?: boolean }> = ({ compact }) =
           Client Prototype
         </span>
         <span className="text-slate-300">
-          Operational information and wellsite telemetry shown are <strong className="text-amber-300 font-semibold">DEMO SIMULATED DATA</strong> for client presentation.
+          <strong className="text-amber-300 font-semibold">DEMO SIMULATED DATA</strong> — Telemetry is synthesized for demonstration purposes and is not connected to physical live assets.
         </span>
       </div>
       <div className="flex items-center gap-3 text-slate-400 text-[11px]">

@@ -39,13 +39,29 @@ import {
 } from '../../data/cableShopData';
 import { EspSizingRequest } from '../../types';
 
-export const EspMonitoringView: React.FC = () => {
+interface EspMonitoringViewProps {
+  selectedAssetId?: string | null;
+  onSelectAssetId?: (id: string | null) => void;
+}
+
+export const EspMonitoringView: React.FC<EspMonitoringViewProps> = ({
+  selectedAssetId,
+  onSelectAssetId,
+}) => {
   const [activeTab, setActiveTab] = useState<'health-check' | 'asset-performance' | 'sizing-design' | 'bom'>('health-check');
   const [selectedHz, setSelectedHz] = useState<number>(58.5);
-  const [selectedWellId, setSelectedWellId] = useState<string>('ALS-DEL-ESP-104');
+  const [selectedWellId, setSelectedWellId] = useState<string>(() => selectedAssetId || 'ALS-DEL-ESP-104');
   const [notice, setNotice] = useState<string | null>(null);
 
   const wells = useMemo(() => StorageService.getWells(), []);
+
+  React.useEffect(() => {
+    if (selectedAssetId) {
+      const match = wells.find(w => w.id === selectedAssetId || w.wellCode === selectedAssetId);
+      if (match) setSelectedWellId(match.id);
+    }
+  }, [selectedAssetId, wells]);
+
   const selectedWell = wells.find(w => w.id === selectedWellId) || wells[0];
 
   // Sizing Request State (Slide 23)

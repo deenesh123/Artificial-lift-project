@@ -54,7 +54,15 @@ import {
   MANUFACTURER_FAILURE_REASONS 
 } from '../../data/cableShopData';
 
-export const FailureMonitoringView: React.FC = () => {
+interface FailureMonitoringViewProps {
+  selectedAssetId?: string | null;
+  onSelectAssetId?: (id: string | null) => void;
+}
+
+export const FailureMonitoringView: React.FC<FailureMonitoringViewProps> = ({
+  selectedAssetId,
+  onSelectAssetId,
+}) => {
   // Navigation Tabs: Analytics (Slides 11-15), Cable Shop Operations (Slide 16), RCA & Teardown Log
   const [mainTab, setMainTab] = useState<'analytics' | 'cable-shop' | 'rca-teardown'>('analytics');
 

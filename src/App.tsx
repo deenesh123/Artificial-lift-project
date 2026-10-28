@@ -4,6 +4,7 @@ import { DEMO_USERS } from './data/mockData';
 import { Header } from './components/layout/Header';
 import { Sidebar } from './components/layout/Sidebar';
 import { UserHeader } from './components/layout/UserHeader';
+import { UserTopNav } from './components/layout/UserTopNav';
 import { UserSidebar } from './components/layout/UserSidebar';
 import { AssetMonitoringPanel } from './components/layout/AssetMonitoringPanel';
 import { Breadcrumb } from './components/layout/Breadcrumb';
@@ -17,6 +18,7 @@ import { StorageService } from './services/storageService';
 // Admin & Shared Views
 import { AdminOverview } from './views/admin/AdminOverview';
 import { UserOperationsDashboard } from './views/user/UserOperationsDashboard';
+import { UserAssetMonitoringView } from './views/user/UserAssetMonitoringView';
 import { AssetManagementView } from './views/modules/AssetManagementView';
 import { DeviceManagementView } from './views/modules/DeviceManagementView';
 import { DeviceMonitoringView } from './views/modules/DeviceMonitoringView';
@@ -285,28 +287,34 @@ export default function App() {
         );
       case 'asset-monitoring-user':
         return (
-          <AssetManagementView 
-            onSelectAsset={(well: WellAsset) => {
-              setSelectedAssetId(well.id);
-              setCurrentRoute('operations');
-              showGlobalNotice(`Focused telemetry on asset ${well.name} (${well.id}).`);
+          <UserAssetMonitoringView 
+            selectedAssetId={selectedAssetId}
+            onSelectAssetId={(id) => {
+              setSelectedAssetId(id);
+              if (id) {
+                const w = wells.find(item => item.id === id || item.wellCode === id);
+                showGlobalNotice(`Focused telemetry on asset ${w?.wellCode || id} (${w?.name || 'Well'}).`);
+              } else {
+                showGlobalNotice('Returned to All Monitored Assets Overview');
+              }
             }}
+            onNavigateToRoute={handleSelectRoute}
           />
         );
       case 'scada-user':
-        return <ScadaDashboardView />;
+        return <ScadaDashboardView selectedAssetId={selectedAssetId} onSelectAssetId={setSelectedAssetId} />;
       case 'digital-twin-user':
-        return <DigitalTwinView />;
+        return <DigitalTwinView selectedAssetId={selectedAssetId} onSelectAssetId={setSelectedAssetId} />;
       case 'esp-user':
-        return <EspMonitoringView />;
+        return <EspMonitoringView selectedAssetId={selectedAssetId} onSelectAssetId={setSelectedAssetId} />;
       case 'pump-user':
         return <PumpDashboardView />;
       case 'alarms-user':
-        return <AlarmCenterView />;
+        return <AlarmCenterView selectedAssetId={selectedAssetId} onSelectAssetId={setSelectedAssetId} />;
       case 'events-user':
-        return <EventCenterView />;
+        return <EventCenterView selectedAssetId={selectedAssetId} onSelectAssetId={setSelectedAssetId} />;
       case 'failure-monitoring-user':
-        return <FailureMonitoringView />;
+        return <FailureMonitoringView selectedAssetId={selectedAssetId} onSelectAssetId={setSelectedAssetId} />;
       case 'workflows-user':
         return <JobWorkflowsView />;
       case 'cable-shop-user':
@@ -314,7 +322,7 @@ export default function App() {
       case 'fleet-user':
         return <VehicleTrackingView />;
       case 'reports-user':
-        return <ReportsAnalyticsView />;
+        return <ReportsAnalyticsView selectedAssetId={selectedAssetId} onSelectAssetId={setSelectedAssetId} />;
       default:
         return (
           <UserOperationsDashboard
@@ -406,34 +414,90 @@ export default function App() {
             onNavigateToRoute={handleSelectRoute}
           />
 
-          <div className="flex-1 flex overflow-hidden">
-            {/* Dedicated User Portal Sidebar (12 Modules) */}
-            <UserSidebar
-              currentRoute={currentRoute}
-              onSelectRoute={handleSelectRoute}
-              collapsed={userNavCollapsed}
-              onToggleCollapse={() => setUserNavCollapsed(!userNavCollapsed)}
-              onLogout={handleLogout}
-            />
+          {/* Dedicated Horizontal Module Navigation Bar with Icons & Categories */}
+          <UserTopNav
+            currentRoute={currentRoute}
+            onSelectRoute={handleSelectRoute}
+            selectedAsset={selectedAsset}
+            onClearSelectedAsset={() => setSelectedAssetId(null)}
+            onSelectAssetId={(id) => setSelectedAssetId(id)}
+          />
 
-            {/* Dedicated Left-Side Asset Monitoring Panel (PART 5) */}
+          {/* User Portal 2-Column Layout below UserTopNav: Left well selector + Right module workspace */}
+          <div className="flex-1 flex overflow-hidden">
+            {/* Left Column: Persistent Collapsible Well/Asset Selector (PART A) */}
             <AssetMonitoringPanel
               wells={wells}
               selectedAssetId={selectedAssetId}
-              onSelectAsset={(well) => {
-                setSelectedAssetId(well ? well.id : null);
-                if (well) {
-                  showGlobalNotice(`Selected ${well.wellCode || well.id} (${well.name})`);
+              onSelectAsset={(w) => {
+                const newId = w ? w.id : null;
+                setSelectedAssetId(newId);
+                if (w) {
+                  showGlobalNotice(`Focused workspace on ${w.wellCode || w.id} (${w.name})`);
                 } else {
-                  showGlobalNotice('Switched to All Monitored Assets Overview');
+                  showGlobalNotice('Field-Wide View Active — All 20 Wells Monitored');
                 }
               }}
               collapsed={assetPanelCollapsed}
               onToggleCollapse={() => setAssetPanelCollapsed(!assetPanelCollapsed)}
             />
 
-            {/* User Portal Main Viewport */}
-            <main className="flex-1 overflow-y-auto bg-slate-950 flex flex-col">
+            {/* Right Column: Active Module Workspace */}
+            <main className="flex-1 overflow-y-auto bg-slate-950 flex flex-col min-w-0">
+              {/* Selected Well Heading Banner (PART A) */}
+              {selectedAsset && (
+                <div className="bg-slate-900/95 border-b border-cyan-500/30 px-6 py-3.5 shrink-0 flex flex-wrap items-center justify-between gap-4 shadow-lg backdrop-blur">
+                  <div className="flex items-center gap-3">
+                    <div className={`w-3.5 h-3.5 rounded-full ${
+                      selectedAsset.status === 'Nominal' ? 'bg-emerald-400 animate-pulse' :
+                      selectedAsset.status === 'Warning' ? 'bg-amber-400' : 'bg-rose-500'
+                    }`} />
+                    <div>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-mono font-bold text-sm text-cyan-300 px-2 py-0.5 rounded bg-cyan-950 border border-cyan-800">
+                          {selectedAsset.wellCode || selectedAsset.id}
+                        </span>
+                        <span className="text-slate-500">·</span>
+                        <h2 className="text-sm font-bold text-white tracking-wide">{selectedAsset.name}</h2>
+                        <span className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase ${
+                          selectedAsset.status === 'Nominal' ? 'bg-emerald-950 text-emerald-300 border border-emerald-800' :
+                          selectedAsset.status === 'Warning' ? 'bg-amber-950 text-amber-300 border border-amber-800' :
+                          'bg-rose-950 text-rose-300 border border-rose-800'
+                        }`}>
+                          {selectedAsset.status}
+                        </span>
+                      </div>
+                      <div className="flex flex-wrap items-center gap-2.5 text-[11px] text-slate-400 font-mono mt-1">
+                        <span>Pad: <strong className="text-slate-200">{selectedAsset.padName}</strong></span>
+                        <span className="text-slate-600">·</span>
+                        <span>ESP S/N: <strong className="text-cyan-400">{selectedAsset.espSerialNumber || 'ESP-2026-X89'}</strong></span>
+                        <span className="text-slate-600">·</span>
+                        <span>Freq: <strong className="text-cyan-300">{selectedAsset.vfdFrequencyHz || 58.5} Hz</strong></span>
+                        <span className="text-slate-600">·</span>
+                        <span>Production: <strong className="text-emerald-400">{selectedAsset.currentBopd || 0} BPD</strong></span>
+                        <span className="text-slate-600">·</span>
+                        <span>PIP: <strong className="text-blue-300">{selectedAsset.intakePressurePsi} psi</strong></span>
+                        <span className="text-slate-600">·</span>
+                        <span>Motor Temp: <strong className={(selectedAsset.motorTempF || 0) > 225 ? 'text-rose-400' : 'text-slate-200'}>{selectedAsset.motorTempF}°F</strong></span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => {
+                        setSelectedAssetId(null);
+                        showGlobalNotice('Field-Wide View Active — All 20 Wells Monitored');
+                      }}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-cyan-300 border border-slate-700 text-xs font-semibold shadow-sm transition-colors"
+                      title="Clear asset selection and view field-wide telemetry"
+                    >
+                      <span>✕ Clear Selection / View All Wells</span>
+                    </button>
+                  </div>
+                </div>
+              )}
+
               <div className="flex-1 pb-12">
                 {renderUserView()}
               </div>

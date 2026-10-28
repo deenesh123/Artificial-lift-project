@@ -19,7 +19,15 @@ import { OperationalEvent } from '../../types';
 import { OperationsService } from '../../services/operationsService';
 import { StorageService } from '../../services/storageService';
 
-export const EventCenterView: React.FC = () => {
+interface EventCenterViewProps {
+  selectedAssetId?: string | null;
+  onSelectAssetId?: (id: string | null) => void;
+}
+
+export const EventCenterView: React.FC<EventCenterViewProps> = ({
+  selectedAssetId,
+  onSelectAssetId,
+}) => {
   const [events, setEvents] = useState<OperationalEvent[]>(() => OperationsService.getEvents());
   const [searchTerm, setSearchTerm] = useState('');
   const [typeFilter, setTypeFilter] = useState<string>('All');
@@ -30,6 +38,17 @@ export const EventCenterView: React.FC = () => {
   const [notice, setNotice] = useState<string | null>(null);
 
   const wells = useMemo(() => StorageService.getWells(), []);
+
+  React.useEffect(() => {
+    if (selectedAssetId) {
+      const match = wells.find(w => w.id === selectedAssetId || w.wellCode === selectedAssetId);
+      if (match) {
+        setWellFilter(match.name);
+      }
+    } else {
+      setWellFilter('All');
+    }
+  }, [selectedAssetId, wells]);
 
   const showToast = (msg: string) => {
     setNotice(msg);

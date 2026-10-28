@@ -142,7 +142,29 @@ export const UserHeader: React.FC<UserHeaderProps> = ({
         </div>
 
         {/* Zone 3: Controls, Switch to Admin (if authorized), Alarms, Profile */}
-        <div className="flex items-center gap-3 shrink-0">
+        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+          {/* Client Presentation & Briefing Pack Quick Download (PART K) */}
+          <div className="hidden md:flex items-center gap-1.5 bg-slate-950/80 p-1 rounded-lg border border-slate-800">
+            <a
+              href="/assets/ALS_Enterprise_Client_Presentation.pptx"
+              download="ALS_Enterprise_Client_Presentation.pptx"
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded text-[11px] font-semibold bg-cyan-950/80 hover:bg-cyan-900/90 text-cyan-300 border border-cyan-800 transition-colors shadow-sm"
+              title="Download 12-slide client presentation PowerPoint"
+            >
+              <span className="font-mono font-bold text-[10px] text-cyan-400">PPTX</span>
+              <span>Client Slides</span>
+            </a>
+            <a
+              href="/assets/ALS_Enterprise_Presenter_Guide_and_QA.md"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded text-[11px] font-semibold bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition-colors"
+              title="Open Presenter Script & 12 Client Q&As"
+            >
+              <span>Guide &amp; Q&amp;A</span>
+            </a>
+          </div>
+
           <DemoNoticeBanner compact />
 
           {/* Conditional Admin Portal Switcher */}

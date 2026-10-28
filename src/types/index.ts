@@ -78,6 +78,7 @@ export interface WellAsset {
   batteryVoltage?: number;
   shutdownCause?: string;
   shutdownTime?: string;
+  espSerialNumber?: string;
   coordinates: {
     lat: number;
     lng: number;
@@ -414,11 +415,21 @@ export interface TelemetryPoint {
   time: string;
   intakePressure: number;
   dischargePressure: number;
+  tubingPressure?: number;
+  flowlinePressure?: number;
+  aAnnulusPressure?: number;
+  bAnnulusPressure?: number;
   motorTemp: number;
+  intakeFluidTemp?: number;
+  flowlineTemp?: number;
   frequency: number;
   motorCurrent: number;
   vibration: number;
   flowRate: number;
+  oilRate?: number;
+  powerKw?: number;
+  powerFactor?: number;
+  batteryVoltage?: number;
 }
 
 export interface ScadaHostNode {

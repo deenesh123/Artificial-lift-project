@@ -26,7 +26,15 @@ import { AlarmItem, AlarmSeverity, AlarmResolutionStatus } from '../../types';
 import { OperationsService, INITIAL_ALARMS } from '../../services/operationsService';
 import { StorageService } from '../../services/storageService';
 
-export const AlarmCenterView: React.FC = () => {
+interface AlarmCenterViewProps {
+  selectedAssetId?: string | null;
+  onSelectAssetId?: (id: string | null) => void;
+}
+
+export const AlarmCenterView: React.FC<AlarmCenterViewProps> = ({
+  selectedAssetId,
+  onSelectAssetId,
+}) => {
   const [alarms, setAlarms] = useState<AlarmItem[]>(() => OperationsService.getAlarms());
   const [severityFilter, setSeverityFilter] = useState<string>('All');
   const [categoryFilter, setCategoryFilter] = useState<string>('All');
@@ -35,6 +43,19 @@ export const AlarmCenterView: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [soundEnabled, setSoundEnabled] = useState<boolean>(true);
   const [notice, setNotice] = useState<string | null>(null);
+
+  const wells = useMemo(() => StorageService.getWells(), []);
+
+  React.useEffect(() => {
+    if (selectedAssetId) {
+      const match = wells.find(w => w.id === selectedAssetId || w.wellCode === selectedAssetId);
+      if (match) {
+        setWellFilter(match.name);
+      }
+    } else {
+      setWellFilter('All');
+    }
+  }, [selectedAssetId, wells]);
 
   // Modals
   const [selectedAlarm, setSelectedAlarm] = useState<AlarmItem | null>(null);
@@ -47,8 +68,6 @@ export const AlarmCenterView: React.FC = () => {
   const [suppressAlarmTarget, setSuppressAlarmTarget] = useState<AlarmItem | null>(null);
   const [suppressReason, setSuppressReason] = useState<string>('Planned Maintenance Window');
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-
-  const wells = useMemo(() => StorageService.getWells(), []);
 
   const showToast = (msg: string) => {
     setNotice(msg);

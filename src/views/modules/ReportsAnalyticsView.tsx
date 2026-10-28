@@ -65,17 +65,31 @@ import {
   EquipmentOption
 } from '../../services/telemetryEngine';
 
-export const ReportsAnalyticsView: React.FC = () => {
+interface ReportsAnalyticsViewProps {
+  selectedAssetId?: string | null;
+  onSelectAssetId?: (id: string | null) => void;
+}
+
+export const ReportsAnalyticsView: React.FC<ReportsAnalyticsViewProps> = ({
+  selectedAssetId,
+  onSelectAssetId,
+}) => {
   // Engine State
   const [engineState, setEngineState] = useState<EngineState>(telemetryEngine.getState());
   const [lastTickRecord, setLastTickRecord] = useState<SyntheticTelemetryRecord | undefined>();
   const [tickCounter, setTickCounter] = useState<number>(0);
 
   // Filters
-  const [selectedEquipmentId, setSelectedEquipmentId] = useState<string>('ALL');
+  const [selectedEquipmentId, setSelectedEquipmentId] = useState<string>(() => selectedAssetId || 'ALL');
   const [timeRange, setTimeRange] = useState<'24h' | '7d' | '14d' | '30d' | 'custom'>('7d');
   const [customStart, setCustomStart] = useState<string>('2026-10-01');
   const [customEnd, setCustomEnd] = useState<string>('2026-10-28');
+
+  React.useEffect(() => {
+    if (selectedAssetId) {
+      setSelectedEquipmentId(selectedAssetId);
+    }
+  }, [selectedAssetId]);
   const [searchTableQuery, setSearchTableQuery] = useState<string>('');
   const [tablePage, setTablePage] = useState<number>(1);
   const rowsPerPage = 15;

@@ -85,6 +85,27 @@ export const UserOperationsDashboard: React.FC<UserOperationsDashboardProps> = (
   const [tableSearchTerm, setTableSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'RUNNING' | 'DOWN' | 'WARNING'>('ALL');
 
+  // Wells Down quick action states (PART B)
+  const [dispatchedCrews, setDispatchedCrews] = useState<Record<string, string>>({});
+  const [acknowledgedTrips, setAcknowledgedTrips] = useState<Record<string, boolean>>({});
+  const [restartedWells, setRestartedWells] = useState<Record<string, boolean>>({});
+
+  const handleDispatchCrew = (wellName: string, team: string) => {
+    const time = new Date().toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' });
+    setDispatchedCrews(prev => ({ ...prev, [wellName]: `Dispatched (${time})` }));
+    showNotice(`Emergency Field Crew dispatched to ${wellName}: Assigned ${team}. ETA 35 min.`);
+  };
+
+  const handleAcknowledgeWellTrip = (wellName: string) => {
+    setAcknowledgedTrips(prev => ({ ...prev, [wellName]: true }));
+    showNotice(`Trip condition acknowledged for ${wellName}. Interlock reset armed.`);
+  };
+
+  const handleInitiateRestart = (wellName: string) => {
+    setRestartedWells(prev => ({ ...prev, [wellName]: true }));
+    showNotice(`Initiating VFD pre-charge and soft-start ramp on ${wellName} at 45.0 Hz.`);
+  };
+
   useEffect(() => {
     const handleStorage = () => {
       const data = StorageService.getWells();
@@ -791,46 +812,239 @@ export const UserOperationsDashboard: React.FC<UserOperationsDashboardProps> = (
 
           {allAssetsTab === 'fleet-overview' && (
             <>
-              {/* 6 Hero Operational KPI Cards (PART 7) */}
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-                <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 text-center">
-                  <span className="text-xs text-slate-400 block font-mono">Total Monitored</span>
-                  <span className="text-3xl font-extrabold font-mono text-white mt-1 block">{wellsList.length}</span>
-                  <span className="text-[10px] text-cyan-400 font-mono">Permian & Eagle Ford</span>
+              {/* 10 Control-Room KPI Cards (PART B) */}
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
+                {/* 1. Total Monitored Wells */}
+                <div className="bg-slate-900 border border-slate-800 rounded-xl p-3.5 flex flex-col justify-between shadow-sm">
+                  <div className="flex items-center justify-between text-xs text-slate-400">
+                    <span className="font-medium">Total Monitored</span>
+                    <Layers className="w-4 h-4 text-cyan-400" />
+                  </div>
+                  <div className="mt-2">
+                    <span className="text-2xl font-extrabold font-mono text-white">{wellsList.length}</span>
+                    <span className="text-[10px] text-cyan-400 font-mono block mt-0.5">Permian & Eagle Ford</span>
+                  </div>
                 </div>
 
-                <div className="bg-slate-900 border border-emerald-900/60 bg-emerald-950/20 rounded-xl p-4 text-center">
-                  <span className="text-xs text-emerald-300 block font-mono">Running Wells</span>
-                  <span className="text-3xl font-extrabold font-mono text-emerald-400 mt-1 block">{runningCount}</span>
-                  <span className="text-[10px] text-emerald-400 font-mono">Normal Operations</span>
+                {/* 2. Running Wells */}
+                <div className="bg-slate-900 border border-emerald-900/60 bg-emerald-950/20 rounded-xl p-3.5 flex flex-col justify-between shadow-sm">
+                  <div className="flex items-center justify-between text-xs text-emerald-300">
+                    <span className="font-medium">Running Wells</span>
+                    <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                  </div>
+                  <div className="mt-2">
+                    <span className="text-2xl font-extrabold font-mono text-emerald-400">18</span>
+                    <span className="text-[10px] text-emerald-300/80 font-mono block mt-0.5">Online Nominal</span>
+                  </div>
                 </div>
 
-                <div className="bg-slate-900 border border-rose-900/60 bg-rose-950/20 rounded-xl p-4 text-center">
-                  <span className="text-xs text-rose-300 block font-mono">Wells Down</span>
-                  <span className="text-3xl font-extrabold font-mono text-rose-400 mt-1 block">{downCount}</span>
-                  <span className="text-[10px] text-rose-400 font-mono">Requiring Action</span>
+                {/* 3. Wells Down */}
+                <div className="bg-slate-900 border border-rose-900/60 bg-rose-950/20 rounded-xl p-3.5 flex flex-col justify-between shadow-sm">
+                  <div className="flex items-center justify-between text-xs text-rose-300">
+                    <span className="font-medium">Wells Down</span>
+                    <XCircle className="w-4 h-4 text-rose-400" />
+                  </div>
+                  <div className="mt-2">
+                    <span className="text-2xl font-extrabold font-mono text-rose-400">0</span>
+                    <span className="text-[10px] text-rose-300/80 font-mono block mt-0.5">Active Trips (Zero)</span>
+                  </div>
                 </div>
 
-                <div className="bg-slate-900 border border-amber-900/60 bg-amber-950/20 rounded-xl p-4 text-center">
-                  <span className="text-xs text-amber-300 block font-mono">Warning / Threat</span>
-                  <span className="text-3xl font-extrabold font-mono text-amber-400 mt-1 block">{warningCount}</span>
-                  <span className="text-[10px] text-amber-400 font-mono">Thermal / Vibration</span>
+                {/* 4. Cycling Wells */}
+                <div className="bg-slate-900 border border-blue-900/60 bg-blue-950/20 rounded-xl p-3.5 flex flex-col justify-between shadow-sm">
+                  <div className="flex items-center justify-between text-xs text-blue-300">
+                    <span className="font-medium">Cycling Wells</span>
+                    <RotateCw className="w-4 h-4 text-blue-400" />
+                  </div>
+                  <div className="mt-2">
+                    <span className="text-2xl font-extrabold font-mono text-blue-400">2</span>
+                    <span className="text-[10px] text-blue-300/80 font-mono block mt-0.5">Intermittent / POC</span>
+                  </div>
                 </div>
 
-                <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 text-center">
-                  <span className="text-xs text-slate-400 block font-mono">Total Production</span>
-                  <span className="text-3xl font-extrabold font-mono text-cyan-300 mt-1 block">
-                    {totalProductionBpd.toLocaleString()}
-                  </span>
-                  <span className="text-[10px] text-slate-400 font-mono">BPD Gross Fluid</span>
+                {/* 5. Wells with No Communication */}
+                <div className="bg-slate-900 border border-amber-900/60 bg-amber-950/20 rounded-xl p-3.5 flex flex-col justify-between shadow-sm">
+                  <div className="flex items-center justify-between text-xs text-amber-300">
+                    <span className="font-medium">No Comm</span>
+                    <Radio className="w-4 h-4 text-amber-400" />
+                  </div>
+                  <div className="mt-2">
+                    <span className="text-2xl font-extrabold font-mono text-amber-400">1</span>
+                    <span className="text-[10px] text-amber-300/80 font-mono block mt-0.5">Telemetry Offline</span>
+                  </div>
                 </div>
 
-                <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 text-center">
-                  <span className="text-xs text-slate-400 block font-mono">Average Health</span>
-                  <span className="text-3xl font-extrabold font-mono text-emerald-400 mt-1 block">
-                    {avgHealth}%
-                  </span>
-                  <span className="text-[10px] text-emerald-400 font-mono">Reliability Index</span>
+                {/* 6. Total Production in BPD */}
+                <div className="bg-slate-900 border border-slate-800 rounded-xl p-3.5 flex flex-col justify-between shadow-sm">
+                  <div className="flex items-center justify-between text-xs text-slate-400">
+                    <span className="font-medium">Total Production</span>
+                    <Flame className="w-4 h-4 text-cyan-400" />
+                  </div>
+                  <div className="mt-2">
+                    <span className="text-2xl font-extrabold font-mono text-cyan-300">14,320</span>
+                    <span className="text-[10px] text-slate-400 font-mono block mt-0.5">BPD Gross Fluid</span>
+                  </div>
+                </div>
+
+                {/* 7. Active Alarms */}
+                <div className="bg-slate-900 border border-rose-900/40 rounded-xl p-3.5 flex flex-col justify-between shadow-sm">
+                  <div className="flex items-center justify-between text-xs text-rose-300">
+                    <span className="font-medium">Active Alarms</span>
+                    <ShieldAlert className="w-4 h-4 text-rose-400" />
+                  </div>
+                  <div className="mt-2">
+                    <span className="text-2xl font-extrabold font-mono text-rose-400">3</span>
+                    <span className="text-[10px] text-slate-400 font-mono block mt-0.5">Unacknowledged Trips</span>
+                  </div>
+                </div>
+
+                {/* 8. Total Power Consumption */}
+                <div className="bg-slate-900 border border-slate-800 rounded-xl p-3.5 flex flex-col justify-between shadow-sm">
+                  <div className="flex items-center justify-between text-xs text-slate-400">
+                    <span className="font-medium">Total Power</span>
+                    <Zap className="w-4 h-4 text-amber-400" />
+                  </div>
+                  <div className="mt-2">
+                    <span className="text-2xl font-extrabold font-mono text-white">2,840 <span className="text-xs text-slate-400">kW</span></span>
+                    <span className="text-[10px] text-slate-400 font-mono block mt-0.5">Grid & Gen Demand</span>
+                  </div>
+                </div>
+
+                {/* 9. Average ESP Health */}
+                <div className="bg-slate-900 border border-slate-800 rounded-xl p-3.5 flex flex-col justify-between shadow-sm">
+                  <div className="flex items-center justify-between text-xs text-slate-400">
+                    <span className="font-medium">Avg ESP Health</span>
+                    <Activity className="w-4 h-4 text-emerald-400" />
+                  </div>
+                  <div className="mt-2">
+                    <span className="text-2xl font-extrabold font-mono text-emerald-400">88.4%</span>
+                    <span className="text-[10px] text-emerald-300/80 font-mono block mt-0.5">Reliability Index</span>
+                  </div>
+                </div>
+
+                {/* 10. 24-Hour Operational Summary */}
+                <div className="bg-slate-900 border border-slate-800 rounded-xl p-3.5 flex flex-col justify-between shadow-sm">
+                  <div className="flex items-center justify-between text-xs text-slate-400">
+                    <span className="font-medium">24H Summary</span>
+                    <Clock className="w-4 h-4 text-cyan-400" />
+                  </div>
+                  <div className="mt-2">
+                    <span className="text-2xl font-extrabold font-mono text-cyan-400">98.2%</span>
+                    <span className="text-[10px] text-cyan-300/80 font-mono block mt-0.5">Uptime Availability</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Dedicated Wells Down Panel & Action Center (PART B) */}
+              <div className="bg-slate-900 border border-rose-900/40 rounded-xl p-4 shadow-sm">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-b border-slate-800 pb-3 mb-3">
+                  <div className="flex items-center gap-2.5">
+                    <span className="w-2.5 h-2.5 rounded-full bg-rose-500 animate-pulse" />
+                    <div>
+                      <h3 className="text-xs font-bold text-white uppercase tracking-wider font-mono flex items-center gap-2">
+                        <span>Wells Down Panel & Field Intervention Queue</span>
+                        <span className="text-[10px] text-rose-400 bg-rose-950/80 px-2 py-0.5 rounded border border-rose-800 font-mono normal-case">
+                          3 Priority Interventions
+                        </span>
+                      </h3>
+                      <p className="text-[11px] text-slate-400">Shutdown reasons, last operating times, active trip alarms, and assigned response crews.</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setAllAssetsTab('wells-down-24h')}
+                      className="text-xs text-cyan-400 hover:text-cyan-300 font-medium flex items-center gap-1"
+                    >
+                      <span>Full 13 Incident Register</span>
+                      <ChevronRight className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  {[
+                    {
+                      well: 'DEMO-WELL-001',
+                      pad: 'Phantom State Pad Bravo',
+                      reason: 'Drive stopped. Backspin Waiting (25 min remaining)',
+                      lastOp: 'Today 05:00 UTC',
+                      alarm: 'ALM-TRIP-01: Reverse Rotation Protective Lockout',
+                      team: 'Permian Lift Surveillance Crew #2',
+                    },
+                    {
+                      well: 'DEMO-WELL-002',
+                      pad: 'Red River Federal Pad 4',
+                      reason: 'Drive faulted. Reason: Fault, High Wellhead Temp (242°F)',
+                      lastOp: 'Yesterday 12:21 UTC',
+                      alarm: 'ALM-TRIP-02: Flowline Thermal Excursion',
+                      team: 'Electrical Automation Team B',
+                    },
+                    {
+                      well: 'DEMO-WELL-003',
+                      pad: 'Clearfork Unit Pad 8',
+                      reason: 'Drive faulted. Reason: External Emergency ESD Interlock',
+                      lastOp: 'Yesterday 06:30 UTC',
+                      alarm: 'ALM-TRIP-03: Facility ESD Loop Opened',
+                      team: 'Wellhead Services Squad Alpha',
+                    },
+                  ].map(item => (
+                    <div key={item.well} className="p-3 bg-slate-950/80 border border-slate-800 rounded-lg flex flex-col justify-between space-y-2">
+                      <div>
+                        <div className="flex items-center justify-between">
+                          <span className="font-mono font-bold text-xs text-cyan-300">{item.well}</span>
+                          <span className="px-1.5 py-0.5 rounded text-[9px] font-mono font-bold bg-rose-950 text-rose-300 border border-rose-800">
+                            TRIPPED
+                          </span>
+                        </div>
+                        <div className="text-[11px] text-slate-300 font-medium mt-0.5">{item.pad}</div>
+                        <div className="text-[10px] text-rose-300/90 font-mono mt-1">
+                          Reason: {item.reason}
+                        </div>
+                        <div className="text-[10px] text-slate-400 font-mono mt-0.5">
+                          Last Op: <strong className="text-slate-300">{item.lastOp}</strong>
+                        </div>
+                        <div className="text-[10px] text-amber-300/80 font-mono mt-0.5">
+                          Alarm: {item.alarm}
+                        </div>
+                        <div className="text-[10px] text-cyan-400 font-mono mt-0.5">
+                          Team: {item.team}
+                        </div>
+                      </div>
+
+                      <div className="pt-2 border-t border-slate-800 flex flex-wrap items-center gap-1.5">
+                        <button
+                          onClick={() => handleDispatchCrew(item.well, item.team)}
+                          className={`px-2 py-1 rounded text-[10px] font-semibold transition-colors ${
+                            dispatchedCrews[item.well]
+                              ? 'bg-emerald-950 text-emerald-300 border border-emerald-700'
+                              : 'bg-slate-800 hover:bg-slate-700 text-cyan-300 border border-slate-700'
+                          }`}
+                        >
+                          {dispatchedCrews[item.well] || 'Dispatch Crew'}
+                        </button>
+                        <button
+                          onClick={() => handleAcknowledgeWellTrip(item.well)}
+                          className={`px-2 py-1 rounded text-[10px] font-semibold transition-colors ${
+                            acknowledgedTrips[item.well]
+                              ? 'bg-emerald-950 text-emerald-300 border border-emerald-700'
+                              : 'bg-slate-800 hover:bg-slate-700 text-rose-300 border border-slate-700'
+                          }`}
+                        >
+                          {acknowledgedTrips[item.well] ? 'Trip Acked' : 'Ack Trip'}
+                        </button>
+                        <button
+                          onClick={() => handleInitiateRestart(item.well)}
+                          className={`px-2 py-1 rounded text-[10px] font-semibold transition-colors ${
+                            restartedWells[item.well]
+                              ? 'bg-cyan-950 text-cyan-300 border border-cyan-700'
+                              : 'bg-cyan-600 hover:bg-cyan-500 text-white'
+                          }`}
+                        >
+                          {restartedWells[item.well] ? 'Ramping...' : 'Restart'}
+                        </button>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
 
@@ -1048,45 +1262,123 @@ export const UserOperationsDashboard: React.FC<UserOperationsDashboardProps> = (
                   <thead className="bg-slate-950 text-slate-400 font-mono text-[11px] uppercase border-b border-slate-800">
                     <tr>
                       <th className="px-3 py-2.5">Well Short Name</th>
-                      <th className="px-3 py-2.5">Manufacturer</th>
                       <th className="px-3 py-2.5 text-center">Status</th>
-                      <th className="px-3 py-2.5 text-right">Freq. (Hz)</th>
-                      <th className="px-3 py-2.5">Op. Mode</th>
-                      <th className="px-3 py-2.5 text-right">PIP (psi)</th>
-                      <th className="px-3 py-2.5 text-right">Motor Temp °F</th>
                       <th className="px-3 py-2.5">Shutdown Cause</th>
-                      <th className="px-3 py-2.5 font-mono">Shutdown Time</th>
-                      <th className="px-3 py-2.5 text-center">Action</th>
+                      <th className="px-3 py-2.5 font-mono">Last Op. Time</th>
+                      <th className="px-3 py-2.5">Active Alarm / Trip Condition</th>
+                      <th className="px-3 py-2.5">Assigned Responsible Team</th>
+                      <th className="px-3 py-2.5 text-center">Quick Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-800 font-mono text-slate-200">
-                    {WELLS_DOWN_24H_DATA.map((row, idx) => (
-                      <tr key={idx} className="hover:bg-slate-800/40 transition-colors">
-                        <td className="px-3 py-2.5 font-sans font-bold text-cyan-300">{row.well}</td>
-                        <td className="px-3 py-2.5 text-slate-300">{row.manufacturer}</td>
-                        <td className="px-3 py-2.5 text-center">
-                          <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-rose-950 text-rose-300 border border-rose-800">
-                            {row.status}
-                          </span>
-                        </td>
-                        <td className="px-3 py-2.5 text-right text-slate-400">{row.freqHz}</td>
-                        <td className="px-3 py-2.5 text-slate-300">{row.opMode}</td>
-                        <td className="px-3 py-2.5 text-right font-bold text-white">{row.pipPsi}</td>
-                        <td className="px-3 py-2.5 text-right text-slate-300">{row.motorTempF || '—'}</td>
-                        <td className="px-3 py-2.5 text-rose-300 font-sans max-w-xs truncate" title={row.shutdownCause}>
-                          {row.shutdownCause}
-                        </td>
-                        <td className="px-3 py-2.5 text-slate-400 text-[11px] whitespace-nowrap">{row.shutdownTime}</td>
-                        <td className="px-3 py-2.5 text-center">
-                          <button
-                            onClick={() => handleSelectAsset(row.well)}
-                            className="px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-cyan-400 text-[10px] font-sans font-semibold transition-colors"
-                          >
-                            Diagnose
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
+                    {WELLS_DOWN_24H_DATA.map((row, idx) => {
+                      const teams = [
+                        'Permian Lift Surveillance Crew #2',
+                        'Electrical Automation Team B',
+                        'Wellhead Services Squad Alpha',
+                        'Delaware Field Response Team 1',
+                        'Eagle Ford Rig Crew 4',
+                        'Midland Automation Support',
+                        'Permian ESP Field Services',
+                        'Delaware Chemical Unit 3',
+                        'Pecos Workover Rig 14',
+                        'Mobile Instrumentation Van 08',
+                        'Wireline Truck Crew 204',
+                        'Field Electrical Team #1',
+                        'Pecos Facility Automation Crew'
+                      ];
+                      const alarms = [
+                        'ALM-TRIP-01: Backspin Timer Active (25m)',
+                        'ALM-TRIP-02: High Wellhead Temperature (242°F)',
+                        'ALM-TRIP-03: External ESD Interlock Trip',
+                        'ALM-TRIP-04: Drive Not Ready / Precharge Fault',
+                        'ALM-TRIP-05: Manual Choke Relief Isolation',
+                        'ALM-TRIP-06: Downhole Phase Loss Fault',
+                        'ALM-TRIP-07: Underload Trip / Gas Lock',
+                        'ALM-TRIP-08: High Vibration Protective Cutoff',
+                        'ALM-TRIP-09: Overcurrent / Stalled Rotor',
+                        'ALM-TRIP-10: Low Intake Pressure Limit Trip',
+                        'ALM-TRIP-11: VFD Heat Sink Thermal Trip',
+                        'ALM-TRIP-12: Surface RTU Telemetry Timeout',
+                        'ALM-TRIP-13: Transformer Secondary Sag'
+                      ];
+                      const team = teams[idx % teams.length];
+                      const alarm = alarms[idx % alarms.length];
+
+                      return (
+                        <tr key={idx} className="hover:bg-slate-800/40 transition-colors">
+                          <td className="px-3 py-2.5 font-sans font-bold text-cyan-300">
+                            <div>{row.well}</div>
+                            <div className="text-[10px] text-slate-500 font-mono">{row.manufacturer} · {row.opMode}</div>
+                          </td>
+                          <td className="px-3 py-2.5 text-center">
+                            <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-rose-950 text-rose-300 border border-rose-800">
+                              {row.status}
+                            </span>
+                          </td>
+                          <td className="px-3 py-2.5 text-rose-300 font-sans max-w-xs" title={row.shutdownCause}>
+                            <div className="font-medium text-xs text-rose-200">{row.shutdownCause}</div>
+                            <div className="text-[10px] text-slate-400 font-mono mt-0.5">PIP: {row.pipPsi} psi · Freq: {row.freqHz} Hz</div>
+                          </td>
+                          <td className="px-3 py-2.5 text-slate-300 text-[11px] whitespace-nowrap font-mono">{row.shutdownTime}</td>
+                          <td className="px-3 py-2.5 font-mono text-[11px] text-amber-300">
+                            {alarm}
+                          </td>
+                          <td className="px-3 py-2.5 text-cyan-300 font-sans text-xs">
+                            <div className="font-medium">{team}</div>
+                            {dispatchedCrews[row.well] && (
+                              <div className="text-[10px] text-emerald-400 font-mono mt-0.5">
+                                ✓ {dispatchedCrews[row.well]}
+                              </div>
+                            )}
+                          </td>
+                          <td className="px-3 py-2.5 text-center">
+                            <div className="flex items-center justify-center gap-1.5 font-sans">
+                              <button
+                                onClick={() => handleDispatchCrew(row.well, team)}
+                                className={`px-2 py-1 rounded text-[10px] font-semibold transition-colors ${
+                                  dispatchedCrews[row.well]
+                                    ? 'bg-emerald-950 text-emerald-300 border border-emerald-700'
+                                    : 'bg-slate-800 hover:bg-slate-700 text-cyan-300 border border-slate-700'
+                                }`}
+                                title="Dispatch field crew to well location"
+                              >
+                                {dispatchedCrews[row.well] ? 'Dispatched' : 'Dispatch'}
+                              </button>
+                              <button
+                                onClick={() => handleAcknowledgeWellTrip(row.well)}
+                                className={`px-2 py-1 rounded text-[10px] font-semibold transition-colors ${
+                                  acknowledgedTrips[row.well]
+                                    ? 'bg-emerald-950 text-emerald-300 border border-emerald-700'
+                                    : 'bg-slate-800 hover:bg-slate-700 text-rose-300 border border-slate-700'
+                                }`}
+                                title="Acknowledge trip and arm reset"
+                              >
+                                {acknowledgedTrips[row.well] ? 'Acked' : 'Ack'}
+                              </button>
+                              <button
+                                onClick={() => handleInitiateRestart(row.well)}
+                                className={`px-2 py-1 rounded text-[10px] font-semibold transition-colors ${
+                                  restartedWells[row.well]
+                                    ? 'bg-cyan-950 text-cyan-300 border border-cyan-700'
+                                    : 'bg-cyan-600 hover:bg-cyan-500 text-white'
+                                }`}
+                                title="Initiate VFD soft start ramp"
+                              >
+                                {restartedWells[row.well] ? 'Ramping' : 'Restart'}
+                              </button>
+                              <button
+                                onClick={() => handleSelectAsset(row.well)}
+                                className="px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 text-[10px] font-semibold transition-colors"
+                                title="Open asset cockpit"
+                              >
+                                Diagnose
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
